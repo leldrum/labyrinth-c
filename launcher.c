@@ -12,16 +12,16 @@ void diplay(){
 
 void generate(){
     int largeur;
-    int longueur;
+    int width;
     char *nom;
 
     printf("Veuillez insérer la largeur de votre labyrinthe (impaire): ");
     scanf("%d", &largeur);
-    printf("Veuillez insérer la longueur de votre labyrinthe (impaire): ");
-    scanf("%d", &longueur);
+    printf("Veuillez insérer la width de votre labyrinthe (impaire): ");
+    scanf("%d", &width);
 
-    if(largeur % 2 == 0 || longueur % 2 == 0){
-        printf("Vous ne respectez pas la condition d'une longueur/largeur impaire.");
+    if(largeur % 2 == 0 || width % 2 == 0){
+        printf("Vous ne respectez pas la condition d'une width/largeur impaire.");
         return;
     }
 
