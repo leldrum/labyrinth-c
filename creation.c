@@ -31,8 +31,8 @@ typedef struct {
 
 Case *at_Case(Labyrinth *laby, int y, int x){
     if(y >= 0 && y < laby->height && x >= 0 && x < laby->width){
-        Case *currentCase;
-        currentCase->is_verif;
+        Case *currentCase = malloc(sizeof(*currentCase));
+        currentCase->is_verif = false;
         currentCase->x = x;
         currentCase->y = y;
         currentCase->value = laby->grille[y][x];
@@ -47,6 +47,11 @@ void display(Labyrinth *laby){
             if(laby->grille[i][j] == WALL){
                 printf("%s ", "#");
             }
+            else if (laby->grille[i][j] == ENTER)
+            {
+                /* code */
+            }
+            
             else{
                 printf("%s ", " ");
             }
@@ -55,15 +60,6 @@ void display(Labyrinth *laby){
     }
 }
 
-
-void testDisplay(Labyrinth *laby){
-    for (int i = 0; i < laby->height; i++){
-        for (int j = 0; j < laby->width; j++){
-            printf("%d ", laby->grille[i][j]);
-        }
-        printf("\n");
-    }
-}
 
 void display_vector(int * vector, int dimension){
     for(int i = 0; i < dimension; i++){
@@ -79,16 +75,34 @@ void display_matrix(int ** matrix, int lines, int columns){
     }
 }
 void changeValues(Labyrinth *laby, int currentValue, int oldValue){
-    Case *new;
     for (int i = 0; i < laby->height; i++){
-        for (int j = 0; i < laby->width; j++){
-            new = at_Case(laby, i,j);
-            if(new->value == oldValue){
-                new->value = currentValue;
+        for (int j = 0; j < laby->width; j++){
+            if(laby->grille[i][j] == oldValue ){
+                laby->grille[i][j] = currentValue;
             }
         }
     }
-    
+}
+
+bool hasMultipleNonZeroValues(Labyrinth *laby){
+    int firstValue = 0;
+
+    for (int i = 0; i < laby->height; i++){
+        for (int j = 0; j < laby->width; j++){
+            int value = laby->grille[i][j];
+
+            if(firstValue != value && (firstValue != 0 && value != 0)){
+                return true;
+            }
+
+            if (value != 0){
+                firstValue = value;
+            }
+            
+        }
+    }
+
+    return false;
 }
 
 
@@ -108,13 +122,19 @@ void fusion(Labyrinth *laby, Case *currentCase, Case *nextCase){
     between_case->is_verif = true;
     between_case->value = currentCase->value;
 
+    laby->grille[between_case->y][between_case->x] = between_case->value;
+
+
     changeValues(laby, currentCase->value, nextCase->value);
+    //testDisplay(laby);
 }
 
 void entreeSortie(Labyrinth *laby, int h, int w){
     laby->grille[0][1] = ENTER;
     laby->grille[h-1][w-1] = EXIT;
 }
+
+
 
 void murInchangeable(Labyrinth *laby){
     for (int i = 0; i < laby->height; i++){
@@ -128,9 +148,7 @@ void murInchangeable(Labyrinth *laby){
 
 
 int randomNumber(int num){
-    srand(time(NULL));
-    int nb = rand() % num;
-    return nb;
+    return rand() % num + 1;
 }
 
 int * allocate_line(int dimension, int val){
@@ -220,44 +238,78 @@ Labyrinth *creationLabyrinth(int height, int width){
     
     murInchangeable(laby);
 
+    int processedCoordinates = 0;
+    int attemptsWithoutFusion = 0;
+    int cellCount = ((height - 1) / 2) * ((width - 1) / 2);
+    bool *usedCoordinates = calloc(height *width, sizeof(*usedCoordinates));
 
-    int nbMurEnleverMax = (height - 1) * (width - 1);
-    int random_direction = randomNumber(2);
-    int random_cord[2] = {randomNumber(height), randomNumber(width)}; 
+    if (usedCoordinates == NULL){
+        free_laby(grille, height);
+        free(grille);
+        free(laby);
+        printf("Erreur d'allocation mémoire");
+        exit(1);
+    }
+
+    while (hasMultipleNonZeroValues(laby)
+           && attemptsWithoutFusion < cellCount * cellCount){
+
+        int random_direction = randomNumber(2) - 1;
+        int random_cord[2] = {randomNumber(height-1), randomNumber(width-1)};
+        
+        if(random_cord[0] % 2 == 0 || random_cord[1] % 2 == 0){
+            continue;
+        }
+
+        size_t coordinateIndex = (size_t)random_cord[0] * (size_t)width
+                               + (size_t)random_cord[1];
+        if (usedCoordinates[coordinateIndex]){
+            continue;
+        }
 
 
-   /* while (nbMurEnleverMax != 0){
+
         Case *currentCase = at_Case(laby, random_cord[0], random_cord[1]);
-        Case *nextCase;
+        Case *nextCase = NULL;
 
         if(!currentCase->is_verif){
+            currentCase->direction = random_direction;
             switch (random_direction){
             //si vers la droite
             case 0:
+                if(currentCase->x + 2 >= width){
+                    break;
+                }
                 nextCase = at_Case(laby, random_cord[0], random_cord[1]+2);
-                nextCase->direction = 0;
                 break;
             //si vers le bas
             case 1:
+                if(currentCase->y + 2 >= height){
+                    break;
+                }
                 nextCase = at_Case(laby, random_cord[0]+2, random_cord[1]);
-                nextCase->direction = 1;
                 break;
             default:
                 break;
             }
-        }
-        else{
-            break;
-        }
-
-        if(!nextCase->is_verif){
-            fusion(laby, currentCase, nextCase);
-            nbMurEnleverMax--;
-        }
-        else{
+        }else{
             continue;
         }
-    }*/
+
+        if(nextCase != NULL && !nextCase->is_verif){
+            fusion(laby, currentCase, nextCase);
+            usedCoordinates[coordinateIndex] = true;
+            processedCoordinates++;
+            attemptsWithoutFusion = 0;
+        }
+        else{
+            attemptsWithoutFusion++;
+            continue;
+        }
+    }
+
+    free(usedCoordinates);
+    entreeSortie(laby, laby->height, laby->width);
 
     return laby;
 }
@@ -266,15 +318,14 @@ Labyrinth *creationLabyrinth(int height, int width){
 
 
 int main(){
-    Labyrinth *laby = creationLabyrinth(7,7);
+    srand((int)time(NULL));
+
+    Labyrinth *laby = creationLabyrinth(11,11);
  
     if(laby != NULL){
-        testDisplay(laby);
+        display(laby);
         free_laby(laby->grille, laby->height);
         free(laby);
     }
     return 0;
 }
-
-
-
