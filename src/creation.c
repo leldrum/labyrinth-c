@@ -3,30 +3,8 @@
 #include <time.h>
 #include <stdbool.h>
 
-#define WAY 0
-#define WALL 0
-#define ENTER 2
-#define EXIT 3
-
-typedef struct {
-    int height;
-    int width;
-    int **grille;
-    char *name;
-} Labyrinth;
-
-
-typedef struct{
-    bool is_verif;
-    int value;
-    int x;
-    int y;
-    int direction;
-} Case;
-
-typedef struct {
-
-} Wall;
+#include "creation.h"
+#include "display.h"
 
 
 Case *at_Case(Labyrinth *laby, int y, int x){
@@ -47,9 +25,13 @@ void display(Labyrinth *laby){
             if(laby->grille[i][j] == WALL){
                 printf("%s ", "#");
             }
-            else if (laby->grille[i][j] == ENTER)
+            else if (laby->grille[i][j] == PLAYER)
             {
-                /* code */
+                printf("%s ", "0");
+            }
+            else if (laby->grille[i][j] == EXIT)
+            {
+                printf("%s ", "-");
             }
             
             else{
@@ -61,19 +43,6 @@ void display(Labyrinth *laby){
 }
 
 
-void display_vector(int * vector, int dimension){
-    for(int i = 0; i < dimension; i++){
-        printf("%d ", *vector);
-        vector++;
-    }
-    printf("\n");
-}
-
-void display_matrix(int ** matrix, int lines, int columns){
-    for(int i = 0; i < columns; i++){
-        display_vector(matrix[i], lines);
-    }
-}
 void changeValues(Labyrinth *laby, int currentValue, int oldValue){
     for (int i = 0; i < laby->height; i++){
         for (int j = 0; j < laby->width; j++){
@@ -130,8 +99,8 @@ void fusion(Labyrinth *laby, Case *currentCase, Case *nextCase){
 }
 
 void entreeSortie(Labyrinth *laby, int h, int w){
-    laby->grille[0][1] = ENTER;
-    laby->grille[h-1][w-1] = EXIT;
+    laby->grille[0][1] = PLAYER;
+    laby->grille[h-1][w-2] = EXIT;
 }
 
 
@@ -315,17 +284,3 @@ Labyrinth *creationLabyrinth(int height, int width){
 }
 
 
-
-
-int main(){
-    srand((int)time(NULL));
-
-    Labyrinth *laby = creationLabyrinth(11,11);
- 
-    if(laby != NULL){
-        display(laby);
-        free_laby(laby->grille, laby->height);
-        free(laby);
-    }
-    return 0;
-}
