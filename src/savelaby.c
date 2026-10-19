@@ -6,11 +6,17 @@
 
 
 void save_laby(Labyrinth *laby){
+    if (laby == NULL || laby->name == NULL) {
+        printf("Le labyrinth est invalide pour l'enregistrement.\n");
+        return;
+    }
+
     char name[256];
-    sprintf(name, "../listes/%s.cfg", laby->name);
+    snprintf(name, sizeof(name), "listes/%s.cfg", laby->name);
     FILE *file = fopen(name, "w");
-    if(file == NULL){
+    if (file == NULL) {
         printf("Le fichier n'a pas pu être ouvert !\n");
+        return;
     }
 
     //print le nom

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "launcher.h"
 #include "creation.h"
@@ -51,16 +52,23 @@ void generate(void) {
         printf("Création du labyrinthe en cours...\n");
         Labyrinth *laby = creationLabyrinth(largeur, width);
         if (laby != NULL) {
-            laby->name = nom;
+            laby->name = malloc(strlen(nom) + 1);
+            if (laby->name == NULL) {
+                free_laby(laby->grille, laby->height);
+                free(laby);
+                printf("Erreur d'allocation mémoire pour le nom du labyrinthe.\n");
+                return;
+            }
+            strcpy(laby->name, nom);
             display(laby);
 
             printf("Voulez vous enregistrer ce labyrinth ? 0 (oui), 1 (non) ");
             scanf("%d", &wantSave);
-            if(wantSave == 0){
+            if (wantSave == 0) {
                 save_laby(laby);
             }
 
-
+            free(laby->name);
             free_laby(laby->grille, laby->height);
             free(laby);
         }
