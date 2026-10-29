@@ -8,32 +8,33 @@
 #define EXIT 3
 #define WAY -1
 
+typedef enum {
+    left = 1, right = 2, up = 3, down = 4
+} Direction;
+
 typedef struct {
     int height;
     int width;
     int **grille;
     char *name;
-} Labyrinth;
+} Maze;
 
 typedef struct {
-    bool is_verif;
-    int value;
     int x;
     int y;
-    int direction;
-} Case;
+    Direction direction;
+} MoveDirection;
 
-Case *at_Case(Labyrinth *laby, int y, int x);
-void display(Labyrinth *laby);
-void changeValues(Labyrinth *laby, int currentValue, int oldValue);
-bool hasMultipleNonZeroValues(Labyrinth *laby);
-void fusion(Labyrinth *laby, Case *currentCase, Case *nextCase);
-void entreeSortie(Labyrinth *laby, int h, int w);
-void murInchangeable(Labyrinth *laby);
+void display(Maze *maze);
+void changeValues(Maze *maze, int currentValue, int oldValue);
+bool hasMultipleNonZeroValues(Maze *maze);
+bool fusion(Maze *maze, int y, int x, Direction direction);
+void entreeSortie(Maze *maze, int h, int w);
+bool estSurContour(const Maze *maze, int y, int x);
 int randomNumber(int num);
 int *allocate_line(int dimension, int val);
 int **initialisationTableau(int height, int width);
-void placementValue(Labyrinth *laby);
-void free_laby(int **grille, int height);
-Labyrinth *creationLabyrinth(int height, int width);
+void placementValue(Maze *maze);
+void free_maze(int **grille, int height);
+Maze *creationMaze(int height, int width);
 #endif

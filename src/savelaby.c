@@ -5,14 +5,14 @@
 #include "display.h"
 
 
-void save_laby(Labyrinth *laby){
-    if (laby == NULL || laby->name == NULL) {
-        printf("Le labyrinth est invalide pour l'enregistrement.\n");
+void save_maze(Maze *maze){
+    if (maze == NULL || maze->name == NULL) {
+        printf("Le Maze est invalide pour l'enregistrement.\n");
         return;
     }
 
     char name[256];
-    snprintf(name, sizeof(name), "listes/%s.cfg", laby->name);
+    snprintf(name, sizeof(name), "listes/%s.cfg", maze->name);
     FILE *file = fopen(name, "w");
     if (file == NULL) {
         printf("Le fichier n'a pas pu être ouvert !\n");
@@ -20,19 +20,19 @@ void save_laby(Labyrinth *laby){
     }
 
     //print le nom
-    fprintf(file, "%s\n", laby->name);
+    fprintf(file, "%s\n", maze->name);
 
     //print la hauteur et la largeur
-    fprintf(file, "%d\n",laby->height);
-    fprintf(file, "%d\n", laby->width);
+    fprintf(file, "%d\n",maze->height);
+    fprintf(file, "%d\n", maze->width);
 
 
 
 
-    //print le labyrinth
-    for(int i = 0; i < laby->height; i++){
-        for(int j = 0; j < laby->width; j++){
-            fprintf(file, "%c", symbole_labyrinth(laby->grille[i][j]));
+    //print le Maze
+    for(int i = 0; i < maze->height; i++){
+        for(int j = 0; j < maze->width; j++){
+            fprintf(file, "%c", symbole_Maze(maze->grille[i][j]));
         }
         fprintf(file, "\n");
     }

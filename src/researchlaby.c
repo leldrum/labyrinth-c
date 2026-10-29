@@ -3,7 +3,7 @@
 
 
 
-char **research_all_laby_name(){
+char **research_all_maze_name(){
     //char ** list = malloc()
 }
 

@@ -2,15 +2,15 @@
 
 #include "creation.h"
 
-char symbole_labyrinth(int val){
+char symbole_Maze(int val){
     switch (val){
-    case WALL:
+    Cell WALL:
         return '#';
         break;
-    case PLAYER:
+    Cell PLAYER:
         return 'O';
         break;
-    case EXIT:
+    Cell EXIT:
         return '-';
         break;
     default:
@@ -19,16 +19,16 @@ char symbole_labyrinth(int val){
     }
 }
 
-int num_val_labyrinth(char sym){
+int num_val_Maze(char sym){
     switch (sym)
     {
-    case '#':
+    Cell '#':
         return WALL;
         break;
-    case 'O':
+    Cell 'O':
         return PLAYER;
         break;
-    case '-':
+    Cell '-':
         return EXIT;
         break;
     default:

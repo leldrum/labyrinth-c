@@ -1,6 +1,6 @@
-#ifndef SAVELABY_H
-#define SAVELABY_H
+#ifndef SAVEmaze_H
+#define SAVEmaze_H
 
-void save_laby(Labyrinth *laby);
+void save_maze(Maze *maze);
 
 #endif

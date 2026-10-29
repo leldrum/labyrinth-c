@@ -1,14 +1,14 @@
 CC = gcc
 CPPFLAGS = -Iinclude
 CFLAGS = -std=c17 -Wall -Wextra -Wpedantic -g
-TARGET = labyrinth
+TARGET = Maze
 BUILD_DIR = build
 
 SRCS = src/main.c \
 	src/creation.c \
 	src/display.c \
 	src/launcher.c \
-	src/savelaby.c
+	src/savemaze.c
 
 OBJS = $(SRCS:src/%.c=$(BUILD_DIR)/%.o)
 

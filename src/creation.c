@@ -6,30 +6,66 @@
 #include "creation.h"
 #include "display.h"
 
+/* Création de la matrice */
 
-Case *at_Case(Labyrinth *laby, int y, int x){
-    if(y >= 0 && y < laby->height && x >= 0 && x < laby->width){
-        Case *currentCase = malloc(sizeof(*currentCase));
-        currentCase->is_verif = false;
-        currentCase->x = x;
-        currentCase->y = y;
-        currentCase->value = laby->grille[y][x];
-        return currentCase;
+int * allocate_line(int dimension, int val){
+    int *tab = malloc(dimension * sizeof(*tab));
+
+    if(tab == NULL){
+        printf("Erreur d'allocation mémoire");
+        exit(1);
     }
-    return 0;
+
+    for (int i = 0; i < dimension; i++){
+        if(i % 2 == 1 && val != WALL){
+            tab[i] = val;
+            val++;
+        }
+        else{
+            tab[i] = WALL;
+        }
+    }
+   
+    return tab;
 }
 
-void display(Labyrinth *laby){
-    for (int i = 0; i < laby->height; i++){
-        for (int j = 0; j < laby->width; j++){
-            if(laby->grille[i][j] == WALL){
+int **initMaze(int height, int width){
+
+    int **maze = (int **)malloc(height * sizeof(*maze));
+    int valNum = 1;
+    if(maze == NULL){
+        printf("Erreur d'allocation mémoire");
+        exit(1);
+    }
+    for (int i = 0; i < height; i++){
+        if(i % 2 == 1){
+            maze[i] = allocate_line(width, valNum);
+            valNum += width/2;
+        }
+        else{
+            maze[i] = allocate_line(width, WALL);
+        }
+    }
+    return maze;
+}
+
+void free_maze(int **grille, int height){
+    for (int i = 0; i < height; i++){
+        free(grille[i]);
+    }
+}
+
+void display(Maze *maze){
+    for (int i = 0; i < maze->height; i++){
+        for (int j = 0; j < maze->width; j++){
+            if(maze->grille[i][j] == WALL){
                 printf("%s ", "#");
             }
-            else if (laby->grille[i][j] == PLAYER)
+            else if (maze->grille[i][j] == PLAYER)
             {
                 printf("%s ", "0");
             }
-            else if (laby->grille[i][j] == EXIT)
+            else if (maze->grille[i][j] == EXIT)
             {
                 printf("%s ", "-");
             }
@@ -43,195 +79,144 @@ void display(Labyrinth *laby){
 }
 
 
-void changeValues(Labyrinth *laby, int currentValue, int oldValue){
-    for (int i = 0; i < laby->height; i++){
-        for (int j = 0; j < laby->width; j++){
-            if(laby->grille[i][j] == oldValue ){
-                laby->grille[i][j] = currentValue;
+void testdisplay(int **maze, int height, int width){
+    for (int i = 0; i < width; i++){
+        for (int j = 0; j < height; j++){
+            if(maze[i][j] == WALL){
+                printf("%s ", "#");
+            }
+            else{
+                printf("%d ", maze[i][j]);
             }
         }
+        printf("\n");
     }
 }
 
-bool hasMultipleNonZeroValues(Labyrinth *laby){
-    int firstValue = 0;
 
-    for (int i = 0; i < laby->height; i++){
-        for (int j = 0; j < laby->width; j++){
-            int value = laby->grille[i][j];
-
-            if(firstValue != value && (firstValue != 0 && value != 0)){
-                return true;
-            }
-
-            if (value != 0){
-                firstValue = value;
-            }
-            
-        }
-    }
-
-    return false;
-}
-
-
-void fusion(Labyrinth *laby, Case *currentCase, Case *nextCase){
-
-    Case *between_case;
-    currentCase->is_verif = true;
-    if (currentCase->direction == 0) {
-        between_case = at_Case(laby, currentCase->y, currentCase->x + 1);
-    }
-    else if (currentCase->direction == 1) {
-        between_case = at_Case(laby, currentCase->y + 1, currentCase->x);
-    }
-    else if (currentCase->direction == 2) {
-        between_case = at_Case(laby, currentCase->y, currentCase->x - 1);
-    }
-    else if (currentCase->direction == 3) {
-        between_case = at_Case(laby, currentCase->y - 1, currentCase->x);
-    }
-    else {
-        return;
-    }
-
-    between_case->is_verif = true;
-    between_case->value = currentCase->value;
-
-    laby->grille[between_case->y][between_case->x] = between_case->value;
-
-    changeValues(laby, currentCase->value, nextCase->value);
-    //testDisplay(laby);
-}
-
-void entreeSortie(Labyrinth *laby, int h, int w){
-    laby->grille[0][1] = PLAYER;
-    laby->grille[h-1][w-2] = EXIT;
-}
-
-
-
-void murInchangeable(Labyrinth *laby){
-    for (int i = 0; i < laby->height; i++){
-        for (int j = 0; j < laby->width; j++){
-            if(i == 0 || i == laby->height - 1 || j == 0 || j == laby->width - 1){
-                at_Case(laby, i, j)->is_verif = true;
+void changeValues(Maze *maze, int currentValue, int nextValue){
+    for (int i = 0; i < maze->height; i++){
+        for (int j = 0; j < maze->width; j++){
+            if(maze->grille[i][j] == nextValue ){
+                maze->grille[i][j] = currentValue;
             }
         }
     }
 }
 
 
-int randomNumber(int num){
-    return rand() % num;
-}
 
-static int randomRange(int min, int max){
-    if (min > max) {
-        int tmp = min;
-        min = max;
-        max = tmp;
-    }
-    return min + (rand() % (max - min + 1));
-}
-
-int * allocate_line(int dimension, int val){
-    int *tab = malloc(dimension * sizeof(*tab));
-    int *line = tab;
-
-    if(tab == NULL){
-        printf("Erreur d'allocation mémoire");
-        exit(1);
+bool fusion(Maze *maze, int y, int x, Direction direction){
+    if (maze == NULL || maze->grille == NULL || 
+        y <= 0 || y >= maze->height-1 || 
+        x <= 0 || x >= maze->width-1 ||
+        y % 2 == 0 || x % 2 == 0){
+        return false;
     }
 
-    for (int i = 0; i < dimension; i++){
-        if(i % 2 == 1 && val != 0){
-            line[i] = val;
-            val++;
-        }
-        else{
-            line[i] = WALL;
-        }
-    }
-   
-    return line;
-}
+    int nextY = y;
+    int nextX = x;
 
-int **initialisationTableau(int height, int width){
+    switch (direction){
+    case left:
+        nextX -= 2;
+        break;
+    case right:
+        nextX += 2;
+        break;
+    case up:
+        nextY -= 2;
+        break;
+    case down:
+        nextY += 2;
+        break;
+    default:
+        return false;
+    }
 
-    int **laby = malloc(height * sizeof(*laby));
-    if(laby == NULL){
-        printf("Erreur d'allocation mémoire");
-        exit(1);
+    if (nextY <= 0 || nextY >= maze->height - 1 ||
+        nextX <= 0 || nextX >= maze->width - 1){
+        return false;
     }
-    for (int i = 0; i < height; i++){
-        laby[i] = allocate_line(width, WALL);
-    }
-    return laby;
-}
 
-void placementValue(Labyrinth *laby){
-    int val = 1;
-    for (int i = 0; i < laby->height; i++){
-        for (int j = 0; j < laby->width; j++){
-            if(i % 2 == 1 && j % 2 == 1){
-                laby->grille[i][j] = val;
-                val++;
-            }
-        }
+    int currentValue = maze->grille[y][x];
+    int nextValue = maze->grille[nextY][nextX];
+    /*if (currentValue <= WALL || nextValue <= WALL ||
+        currentValue == nextValue){
+        return false;
+    }*/
+
+    int wallY = (y + nextY) / 2;
+    int wallX = (x + nextX) / 2;
+    // si pas de mur entre les 2, on retourne false
+    if (maze->grille[wallY][wallX] != WALL){
+        return false;
     }
+
+    maze->grille[wallY][wallX] = WAY;
+    changeValues(maze, currentValue, nextValue);
+    return true;
 }
 
 
-void free_laby(int **grille, int height){
-    for (int i = 0; i < height; i++){
-        free(grille[i]);
+
+bool is_wall_outline(Maze *maze, int y, int x){
+    if (maze == NULL || maze->grille == NULL ||
+        y < 0 || y >= maze->height || x < 0 || x >= maze->width){
+        return true;
     }
+
+    return y == 0 || y == maze->height - 1 ||
+           x == 0 || x == maze->width - 1;
+}
+
+
+MoveDirection *EveryPossibilities(Maze *maze, int length){
+    Direction direction[] = {left, right, up, down};
+    int count;
+    MoveDirection *possibilties;
     
+    for (int i = 1; i < maze->width; i+=2){
+        for (int j = 0; j < maze->height; j+=2){
+            for (int d = 0; d < 4; d++){
+                int nextI = i;
+                int nextJ = j;
+                switch (direction[d]){
+                    case left:
+                        nextI -= 2;
+                        break;
+                    case right:
+                        nextI += 2;
+                        break;
+                    case up:
+                        nextJ += 2;
+                        break;
+                    case down:
+                        nextJ -= 2;
+                        break;
+                    default:
+                        break;
+                }
+
+                if(!is_wall_outline(maze, nextJ, nextI)){
+                    possibilties[count++] = (MoveDirection){i, j , direction[d]};
+                    length++;
+                }
+            }
+        }
+    }
+
+    return possibilties;
 }
 
 
-static void carveMaze(Labyrinth *laby, bool *visited, int y, int x) {
-    visited[(size_t)y * (size_t)laby->width + (size_t)x] = true;
-    laby->grille[y][x] = WAY;
 
-    int directions[4][2] = {
-        {0, 2},
-        {2, 0},
-        {0, -2},
-        {-2, 0}
-    };
 
-    for (int i = 0; i < 4; i++) {
-        int j = rand() % (4 - i);
-        int tmp = directions[i][0];
-        directions[i][0] = directions[j][0];
-        directions[j][0] = tmp;
 
-        tmp = directions[i][1];
-        directions[i][1] = directions[j][1];
-        directions[j][1] = tmp;
-    }
-
-    for (int i = 0; i < 4; i++) {
-        int nextY = y + directions[i][0];
-        int nextX = x + directions[i][1];
-
-        if (nextY <= 0 || nextY >= laby->height - 1 || nextX <= 0 || nextX >= laby->width - 1) {
-            continue;
-        }
-
-        if (!visited[(size_t)nextY * (size_t)laby->width + (size_t)nextX]) {
-            laby->grille[y + directions[i][0] / 2][x + directions[i][1] / 2] = WAY;
-            carveMaze(laby, visited, nextY, nextX);
-        }
-    }
-}
-
-Labyrinth *creationLabyrinth(int height, int width){
+Maze *creationMaze(int height, int width){
 
     if(height <= 0 || width <= 0){
-        printf("Les dimensions du labyrinthe doivent être positives.\n");
+        printf("Les dimensions du Labyrinth doivent être positives.\n");
         return NULL;
     }
 
@@ -240,55 +225,50 @@ Labyrinth *creationLabyrinth(int height, int width){
         return NULL;
     }
 
-    Labyrinth *laby = malloc(sizeof(*laby));
-    if (laby == NULL) {
+    Maze *maze = malloc(sizeof(*maze));
+    if (maze == NULL) {
         printf("Erreur d'allocation mémoire\n");
         return NULL;
     }
 
-    laby->height = height;
-    laby->width = width;
-    laby->name = NULL;
-    laby->grille = malloc(height * sizeof(*laby->grille));
-    if (laby->grille == NULL) {
-        free(laby);
-        printf("Erreur d'allocation mémoire\n");
-        return NULL;
-    }
+    maze->height = height;
+    maze->width = width;
+    maze->name = NULL;
+    maze->grille = initMaze(height, width);
 
-    for (int i = 0; i < height; i++) {
-        laby->grille[i] = malloc(width * sizeof(*laby->grille[i]));
-        if (laby->grille[i] == NULL) {
-            for (int j = 0; j < i; j++) {
-                free(laby->grille[j]);
-            }
-            free(laby->grille);
-            free(laby);
-            printf("Erreur d'allocation mémoire\n");
-            return NULL;
+    int cell_fusion_number = ((height-1) / 2) * ((width-1) / 2) - 1;
+    int fusion_necessary = 0;
+
+    MoveDirection *possibilities = malloc(cell_fusion_number * 2 * sizeof(*possibilities));
+    int lenghtPossibilities = 0;    
+
+    possibilities = EveryPossibilities(maze, &lenghtPossibilities);
+
+    while(fusion_necessary != cell_fusion_number){
+
+        int random_val = rand() % lenghtPossibilities - 1;
+        int x = possibilities[random_val].x;
+        int y = possibilities[random_val].y;
+        int direction = possibilities[random_val].direction;
+
+        if(fusion(maze, y, x, direction)){
+            fusion_necessary++;
         }
 
-        for (int j = 0; j < width; j++) {
-            laby->grille[i][j] = WALL;
-        }
+        // On remplace le mouvement possible recupéré par le dernier de la liste
+        // pour faire la suppression 
+        possibilities[random_val] = possibilities[lenghtPossibilities-1];
+        lenghtPossibilities--;
     }
 
-    bool *visited = calloc((size_t)height * (size_t)width, sizeof(*visited));
-    if (visited == NULL) {
-        free_laby(laby->grille, height);
-        free(laby->grille);
-        free(laby);
-        printf("Erreur d'allocation mémoire\n");
-        return NULL;
-    }
-
-    carveMaze(laby, visited, 1, 1);
-    free(visited);
-
-    laby->grille[0][1] = PLAYER;
-    laby->grille[height - 1][width - 2] = EXIT;
-
-    return laby;
+    return maze;
 }
 
 
+int main(void){
+
+    int **tab = initMaze(7,7);
+    testdisplay(tab, 7,7);
+
+    return 0;
+}
