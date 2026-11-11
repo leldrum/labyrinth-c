@@ -1,38 +1,59 @@
 #include <stdio.h>
 
-#include "creation.h"
+#include "display.h"
+
+void display(Maze *maze){
+    for (int i = 0; i < maze->height; i++){
+        for (int j = 0; j < maze->width; j++){
+            if (maze->grille[i][j] == CELL_WALL){
+                printf("%s ", "#");
+            }
+            else if (maze->grille[i][j] == CELL_PLAYER){
+                printf("%s ", "0");
+            }
+            else if (maze->grille[i][j] == CELL_EXIT){
+                printf("%s ", "-");
+            }
+            else if(maze->grille[i][j] == KEY){
+                printf("%s ", "K");
+            }
+            else if(maze->grille[i][j] == BONUS){
+                printf("%s ", "B");
+            }
+            else if(maze->grille[i][j] == PENALTY){
+                printf("%s ", "P");
+            }
+            else{
+                printf("%s ", " ");
+            }
+        }
+        printf("\n");
+    }
+}
 
 char symbole_Maze(int val){
     switch (val){
-    Cell WALL:
+    case CELL_WALL:
         return '#';
-        break;
-    Cell PLAYER:
+    case CELL_PLAYER:
         return 'O';
-        break;
-    Cell EXIT:
+    case CELL_EXIT:
         return '-';
-        break;
     default:
         return ' ';
-        break;
     }
 }
 
 int num_val_Maze(char sym){
     switch (sym)
     {
-    Cell '#':
-        return WALL;
-        break;
-    Cell 'O':
-        return PLAYER;
-        break;
-    Cell '-':
-        return EXIT;
-        break;
+    case '#':
+        return CELL_WALL;
+    case 'O':
+        return CELL_PLAYER;
+    case '-':
+        return CELL_EXIT;
     default:
-        return WAY;
-        break;
+        return CELL_WAY;
     }
 }

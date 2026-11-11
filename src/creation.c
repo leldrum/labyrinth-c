@@ -17,12 +17,12 @@ int * allocate_line(int dimension, int val){
     }
 
     for (int i = 0; i < dimension; i++){
-        if(i % 2 == 1 && val != WALL){
+        if(i % 2 == 1 && val != CELL_WALL){
             tab[i] = val;
             val++;
         }
         else{
-            tab[i] = WALL;
+            tab[i] = CELL_WALL;
         }
     }
    
@@ -32,7 +32,7 @@ int * allocate_line(int dimension, int val){
 int **initMaze(int height, int width){
 
     int **maze = (int **)malloc(height * sizeof(*maze));
-    int valNum = 1;
+    int valNum = CELL_EXIT + 1;
     if(maze == NULL){
         printf("Erreur d'allocation mémoire");
         exit(1);
@@ -43,46 +43,26 @@ int **initMaze(int height, int width){
             valNum += width/2;
         }
         else{
-            maze[i] = allocate_line(width, WALL);
+            maze[i] = allocate_line(width, CELL_WALL);
         }
     }
     return maze;
 }
 
 void free_maze(int **grille, int height){
+    if (grille == NULL){
+        return;
+    }
     for (int i = 0; i < height; i++){
         free(grille[i]);
     }
+    free(grille);
 }
-
-void display(Maze *maze){
-    for (int i = 0; i < maze->height; i++){
-        for (int j = 0; j < maze->width; j++){
-            if(maze->grille[i][j] == WALL){
-                printf("%s ", "#");
-            }
-            else if (maze->grille[i][j] == PLAYER)
-            {
-                printf("%s ", "0");
-            }
-            else if (maze->grille[i][j] == EXIT)
-            {
-                printf("%s ", "-");
-            }
-            
-            else{
-                printf("%s ", " ");
-            }
-        }
-        printf("\n");
-    }
-}
-
 
 void testdisplay(int **maze, int height, int width){
     for (int i = 0; i < width; i++){
         for (int j = 0; j < height; j++){
-            if(maze[i][j] == WALL){
+            if(maze[i][j] == CELL_WALL){
                 printf("%s ", "#");
             }
             else{
@@ -108,8 +88,7 @@ void changeValues(Maze *maze, int currentValue, int nextValue){
 
 bool fusion(Maze *maze, int y, int x, Direction direction){
     if (maze == NULL || maze->grille == NULL || 
-        y <= 0 || y >= maze->height-1 || 
-        x <= 0 || x >= maze->width-1 ||
+        is_wall_outline(maze, y, x) ||
         y % 2 == 0 || x % 2 == 0){
         return false;
     }
@@ -118,42 +97,41 @@ bool fusion(Maze *maze, int y, int x, Direction direction){
     int nextX = x;
 
     switch (direction){
-    case left:
+    case DIR_LEFT:
         nextX -= 2;
         break;
-    case right:
+    case DIR_RIGHT:
         nextX += 2;
         break;
-    case up:
+    case DIR_UP:
         nextY -= 2;
         break;
-    case down:
+    case DIR_DOWN:
         nextY += 2;
         break;
     default:
         return false;
     }
 
-    if (nextY <= 0 || nextY >= maze->height - 1 ||
-        nextX <= 0 || nextX >= maze->width - 1){
+    if (is_wall_outline(maze, nextY, nextX)){
         return false;
     }
 
     int currentValue = maze->grille[y][x];
     int nextValue = maze->grille[nextY][nextX];
-    /*if (currentValue <= WALL || nextValue <= WALL ||
+    if (currentValue <= CELL_WALL || nextValue <= CELL_WALL ||
         currentValue == nextValue){
         return false;
-    }*/
+    }
 
     int wallY = (y + nextY) / 2;
     int wallX = (x + nextX) / 2;
     // si pas de mur entre les 2, on retourne false
-    if (maze->grille[wallY][wallX] != WALL){
+    if (maze->grille[wallY][wallX] != CELL_WALL){
         return false;
     }
 
-    maze->grille[wallY][wallX] = WAY;
+    maze->grille[wallY][wallX] = CELL_WAY;
     changeValues(maze, currentValue, nextValue);
     return true;
 }
@@ -171,45 +149,36 @@ bool is_wall_outline(Maze *maze, int y, int x){
 }
 
 
-MoveDirection *EveryPossibilities(Maze *maze, int length){
-    Direction direction[] = {left, right, up, down};
-    int count;
-    MoveDirection *possibilties;
+MoveDirection *EveryPossibilities(Maze *maze, int *length){
     
-    for (int i = 1; i < maze->width; i+=2){
-        for (int j = 0; j < maze->height; j+=2){
-            for (int d = 0; d < 4; d++){
-                int nextI = i;
-                int nextJ = j;
-                switch (direction[d]){
-                    case left:
-                        nextI -= 2;
-                        break;
-                    case right:
-                        nextI += 2;
-                        break;
-                    case up:
-                        nextJ += 2;
-                        break;
-                    case down:
-                        nextJ -= 2;
-                        break;
-                    default:
-                        break;
-                }
+    int rows = (maze->height-1) / 2;
+    int columns = (maze->width-1) / 2;
+    int capacity = 2 * (rows * (columns-1) + columns * (rows-1));
+    MoveDirection *possibilities = malloc(capacity * sizeof(*possibilities));
+    if (possibilities == NULL){
+        return NULL;
+    }
 
-                if(!is_wall_outline(maze, nextJ, nextI)){
-                    possibilties[count++] = (MoveDirection){i, j , direction[d]};
-                    length++;
-                }
+    *length = 0;
+    for (int x = 1; x < maze->width-1; x += 2){
+        for (int y = 1; y < maze->height-1; y += 2){
+            if (!is_wall_outline(maze, y, x - 2)){
+                possibilities[(*length)++] = (MoveDirection){x, y, DIR_LEFT};
+            }
+            if (!is_wall_outline(maze, y, x + 2)){
+                possibilities[(*length)++] = (MoveDirection){x, y, DIR_RIGHT};
+            }
+            if (!is_wall_outline(maze, y - 2, x)){
+                possibilities[(*length)++] = (MoveDirection){x, y, DIR_UP};
+            }
+            if (!is_wall_outline(maze, y + 2, x)){
+                possibilities[(*length)++] = (MoveDirection){x, y, DIR_DOWN};
             }
         }
     }
 
-    return possibilties;
+    return possibilities;
 }
-
-
 
 
 
@@ -239,14 +208,18 @@ Maze *creationMaze(int height, int width){
     int cell_fusion_number = ((height-1) / 2) * ((width-1) / 2) - 1;
     int fusion_necessary = 0;
 
-    MoveDirection *possibilities = malloc(cell_fusion_number * 2 * sizeof(*possibilities));
     int lenghtPossibilities = 0;    
 
-    possibilities = EveryPossibilities(maze, &lenghtPossibilities);
+    MoveDirection *possibilities = EveryPossibilities(maze, &lenghtPossibilities);
+    if (possibilities == NULL){
+        free_maze(maze->grille, maze->height);
+        free(maze);
+        return NULL;
+    }
 
     while(fusion_necessary != cell_fusion_number){
 
-        int random_val = rand() % lenghtPossibilities - 1;
+        int random_val = rand() % lenghtPossibilities;
         int x = possibilities[random_val].x;
         int y = possibilities[random_val].y;
         int direction = possibilities[random_val].direction;
@@ -261,14 +234,9 @@ Maze *creationMaze(int height, int width){
         lenghtPossibilities--;
     }
 
+    maze->grille[0][1] = CELL_PLAYER;
+    maze->grille[height-1][width-2] = CELL_EXIT;
+
+    free(possibilities);
     return maze;
-}
-
-
-int main(void){
-
-    int **tab = initMaze(7,7);
-    testdisplay(tab, 7,7);
-
-    return 0;
 }
