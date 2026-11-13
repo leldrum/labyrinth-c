@@ -33,6 +33,9 @@ void save_maze(Maze *maze){
     //print le nom
     fprintf(file, "%s\n", maze->name);
 
+    //print la difficulté
+    fprintf(file, "%d\n",maze->is_difficult);
+
     //print la hauteur et la largeur
     fprintf(file, "%d\n",maze->height);
     fprintf(file, "%d\n", maze->width);
@@ -46,7 +49,7 @@ void save_maze(Maze *maze){
     }
 
     fclose(file);
-    printf("Enregistrement du fichier avec succès !\n");
+    printf("\n  Enregistrement du fichier avec succès !\n");
 }
 
 static void cleanup_read_maze(FILE *file, Maze *maze){
@@ -87,6 +90,12 @@ Maze *read_file_maze(char *name){
     }
 
     if (fgets(maze_name, sizeof(maze_name), file) == NULL){
+        printf("Le fichier du labyrinthe est invalide.\n");
+        cleanup_read_maze(file, maze);
+        return NULL;
+    }
+
+    if (fscanf(file, "%d", &maze->is_difficult) != 1){
         printf("Le fichier du labyrinthe est invalide.\n");
         cleanup_read_maze(file, maze);
         return NULL;
@@ -150,7 +159,7 @@ Maze *read_file_maze(char *name){
     return maze;
 }
 
-char **array_maze_name(int *count){
+char **array_maze_name(int *count, int *is_difficult){
     if (count == NULL){
         return NULL;
     }
@@ -164,12 +173,31 @@ char **array_maze_name(int *count){
     char **names = NULL;
     struct dirent *entry;
     while ((entry = readdir(directory)) != NULL){
-        size_t filename_length = strlen(entry->d_name);
+        int filename_length = strlen(entry->d_name);
         if (filename_length <= 4 || strcmp(entry->d_name + filename_length - 4, ".cfg") != 0){
             continue;
         }
 
-        char **new_names = realloc(names, (size_t)(*count + 1) * sizeof(*names));
+        if (is_difficult != NULL){
+            char filename[512];
+            char maze_name[256];
+            int maze_difficulty;
+            snprintf(filename, sizeof(filename), "%s/%s", MAZE_DIR, entry->d_name);
+            FILE *file = fopen(filename, "r");
+            if (file == NULL){
+                continue;
+            }
+            bool matches_difficulty =
+                fgets(maze_name, sizeof(maze_name), file) != NULL &&
+                fscanf(file, "%d", &maze_difficulty) == 1 &&
+                maze_difficulty == *is_difficult;
+            fclose(file);
+            if (!matches_difficulty){
+                continue;
+            }
+        }
+
+        char **new_names = realloc(names, (int)(*count + 1) * sizeof(*names));
         if (new_names == NULL){
             free_maze_names(names, *count);
             closedir(directory);
@@ -177,7 +205,7 @@ char **array_maze_name(int *count){
         }
         names = new_names;
 
-        size_t name_length = filename_length - 4;
+        int name_length = filename_length - 4;
         names[*count] = malloc(name_length + 1);
         if (names[*count] == NULL){
             free_maze_names(names, *count);
@@ -272,7 +300,7 @@ bool is_better_score(char *name, int score_game){
         return true;
     }
 
-    printf("Interdiction d'enregistrer ce score : il n'est pas dans les 10 meilleurs.\n");
+    printf("  Interdiction d'enregistrer ce score : il n'est pas dans les 10 meilleurs.\n");
     return false;
 }
 

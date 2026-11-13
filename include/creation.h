@@ -20,5 +20,6 @@ bool fusion(Maze *maze, int y, int x, Direction direction);
 bool is_wall_outline(Maze *maze, int y, int x);
 MoveDirection *EveryPossibilities(Maze *maze, int *length);
 Maze *creationMaze(int height, int width);
+void difficult_maze(Maze *maze);
 
 #endif

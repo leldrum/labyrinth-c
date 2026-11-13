@@ -21,36 +21,51 @@ static void display_score(char *name);
 
 
 void menu(){
-    printf("\nCréer votre labyrinth => 0\n");
-    printf("Jouer au labyrinth => 1\n");
-    printf("Charger un labyrinth => 2\n");
-    printf("Charger le tableau des scores => 3\n");
-    printf("Quitter le jeux => 4\n");
+    printf("\n");
+    printf("  +--------------------------------------------+\n");
+    printf("  |                 LABYRINTHE                 |\n");
+    printf("  +--------------------------------------------+\n");
+    printf("  |  0 - Creer un labyrinthe                   |\n");
+    printf("  |  1 - Jouer                                 |\n");
+    printf("  |  2 - Charger un labyrinthe                 |\n");
+    printf("  |  3 - Consulter les meilleurs scores        |\n");
+    printf("  |  4 - Quitter                               |\n");
+    printf("  +--------------------------------------------+\n");
+    printf("  Votre choix : ");
 }
 
 void launcher(void) {
     int choice;
     Maze *maze = NULL;
 
-    printf("Bienvenue dans le Labyrinth !\n\n");
+    printf("\n  ============================================\n");
+    printf("           BIENVENUE DANS LE LABYRINTHE\n");
+    printf("  ============================================\n");
     char name[50] = "";
     
     do {
         if (maze == NULL){
-            printf("Pas encore de labyrinth chargé actuellement\n\n");
+            printf("\n  Aucun labyrinthe charge pour le moment.\n");
         }
         else{
-            printf("Labyrinth actuellement chargé: %s\n\n", maze->name);
+            printf("\n  Labyrinthe actif : %s (%d x %d)\n",
+                   maze->name != NULL ? maze->name : "sans nom",
+                   maze->height, maze->width);
         }
 
         menu();
         if (scanf("%d", &choice) != 1){
             int character;
             while ((character = getchar()) != '\n' && character != EOF){}
-            printf("Choix invalide.\n");
+            system("clear");
+            printf("  Choix invalide.\n");
             continue;
         }
         printf("\n");
+
+        if (choice != exits){
+            system("clear");
+        }
 
         switch (choice){
         case create: {
@@ -89,7 +104,7 @@ void launcher(void) {
         case exits:
             break;
         default:
-            printf("Faute de frappes retapper votre choix\n\n");
+            printf("  Faute de frappes retapper votre choix\n\n");
             break;
         }
 
@@ -107,20 +122,21 @@ Maze *generate_maze(void) {
     int height;
     int width;
     char name[50] = "";
+    int difficulty;
 
-    printf("Veuillez insérer la hauteur de votre labyrinth (impaire): ");
+    printf("  Veuillez insérer la hauteur de votre labyrinth (impaire): ");
     if (scanf("%d", &height) != 1){
         printf("Hauteur invalide.\n");
         return NULL;
     }
-    printf("Veuillez insérer la longueur de votre labyrinth (impaire): ");
+    printf("  Veuillez insérer la longueur de votre labyrinth (impaire): ");
     if (scanf("%d", &width) != 1){
         printf("Largeur invalide.\n");
         return NULL;
     }
 
     if (height < 3 || width < 3 || height % 2 == 0 || width % 2 == 0) {
-        printf("Les dimensions doivent être impaires et supérieures ou égales à 3.\n");
+        printf("  Les dimensions doivent être impaires et supérieures ou égales à 3.\n");
         return NULL;
     }
 
@@ -129,7 +145,7 @@ Maze *generate_maze(void) {
         return NULL;
     }
 
-    printf("Création du Maze en cours...\n");
+    printf("\n  Création du Maze en cours...\n\n");
     Maze *maze = creationMaze(height, width);
     if (maze == NULL){
         return NULL;
@@ -143,6 +159,22 @@ Maze *generate_maze(void) {
         return NULL;
     }
     strcpy(maze->name, name);
+
+    display(maze);
+
+    printf("\n  Voulez-vous un labyrinth plus dur ?  -  (0) oui, (1) non");
+    if(scanf("%d", &difficulty) != 1){
+        printf("Choix invalide.\n");
+        return NULL;
+    }
+    printf("\n");
+
+    maze->is_difficult = difficulty;
+
+    if(difficulty == 0){
+        difficult_maze(maze);
+    }
+
     display(maze);
     save_maze(maze);
     return maze;
@@ -150,7 +182,7 @@ Maze *generate_maze(void) {
 
 void launch_maze(Maze *maze){
     if (maze == NULL){
-        printf("Veuillez charger ou créer un labyrinth d'abord\n");
+        printf("  Veuillez charger ou créer un labyrinth d'abord\n");
         return;
     }
 
@@ -160,15 +192,16 @@ void launch_maze(Maze *maze){
 
 void same_maze_name(char *nom){
     int maze_count = 0;
-    char **maze_names = array_maze_name(&maze_count);
+    char **maze_names = array_maze_name(&maze_count, NULL);
     bool name_exists;
     do {
         name_exists = false;
-        printf("Veuillez insérer le nom de votre labyrinth: ");
+        printf("  Veuillez insérer le nom de votre labyrinth: ");
         if (scanf("%49s", nom) != 1){
             free_maze_names(maze_names, maze_count);
             return;
         }
+        printf("\n");
 
         for (int i = 0; i < maze_count; i++){
             if (strcmp(nom, maze_names[i]) == 0){
@@ -183,26 +216,33 @@ void same_maze_name(char *nom){
 
 void choose_maze_name(char *nom){
     int maze_count = 0;
-    char **maze_names = array_maze_name(&maze_count);
+    int is_difficult = 1;
+
+    printf("  Voulez-vous un niveau difficile ? (0) oui, (1) non ");
+    if(scanf("%d", &is_difficult) != 1){
+        printf("  Choix invalide.\n");
+    }
+
+    char **maze_names = array_maze_name(&maze_count, &is_difficult);
     bool is_present = false;
 
     if (maze_count == 0){
-        printf("Aucun labyrinthe enregistré.\n");
+        printf("\n  Aucun labyrinthe enregistré\n\n");
         free_maze_names(maze_names, maze_count);
         nom[0] = '\0';
         return;
     }
 
-    printf("Lites des labyrinths déjà existants:\n\n");
+    printf("\n  Listes des labyrinths déjà existants:\n\n");
 
 
     do {
         for (int i = 0; i < maze_count; i++){
-            printf("%s\n", maze_names[i]);
+            printf("    %s\n", maze_names[i]);
         }
-        printf("\n");
+        printf("\n\n");
 
-        printf("Veuillez insérer le nom du labyrinth choisi: ");
+        printf("  Veuillez insérer le nom du labyrinth choisi: ");
         if (scanf("%49s", nom) != 1){
             free_maze_names(maze_names, maze_count);
             return;
@@ -216,7 +256,7 @@ void choose_maze_name(char *nom){
             }
         }
         if(!is_present){
-            printf("Ce nom n'existe pas, veuillez en choisir à partir de la liste:\n\n");
+            printf("  Ce nom n'existe pas, veuillez en choisir à partir de la liste:\n\n");
         }
     } while (!is_present);
     free_maze_names(maze_names, maze_count);

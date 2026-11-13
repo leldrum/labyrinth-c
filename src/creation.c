@@ -6,6 +6,10 @@
 #include "creation.h"
 #include "display.h"
 
+static Position *every_possibilities_difficult_maze(Maze *maze, int *length);
+
+#define FIRST_REGION_ID 100
+
 /* Création de la matrice */
 
 int * allocate_line(int dimension, int val){
@@ -32,7 +36,7 @@ int * allocate_line(int dimension, int val){
 int **initMaze(int height, int width){
 
     int **maze = (int **)malloc(height * sizeof(*maze));
-    int valNum = CELL_EXIT + 1;
+    int valNum = FIRST_REGION_ID;
     if(maze == NULL){
         printf("Erreur d'allocation mémoire");
         exit(1);
@@ -180,6 +184,56 @@ MoveDirection *EveryPossibilities(Maze *maze, int *length){
     return possibilities;
 }
 
+static Position *every_possibilities_difficult_maze(Maze *maze, int *length) {
+    if (maze == NULL || maze->grille == NULL || length == NULL) {
+        return NULL;
+    }
+
+    int capacity = maze->height * maze->width;
+    Position *positions = malloc(capacity * sizeof(*positions));
+    if (positions == NULL) {
+        return NULL;
+    }
+
+    *length = 0;
+    for (int row = 1; row < maze->height - 1; row++) {
+        for (int column = 1; column < maze->width - 1; column++) {
+            if (maze->grille[row][column] == CELL_WALL && ((row % 2 == 1 || column % 2 == 1 ) || (row % 2 == 0 || column % 2 == 0 ))) {
+                positions[(*length)++] = (Position){row, column};
+            }
+        }
+    }
+
+    return positions;
+}
+
+
+void difficult_maze(Maze *maze){
+    int length = 0;
+    Position *every_position = every_possibilities_difficult_maze(maze, &length);
+    if (every_position == NULL){
+        return;
+    }
+
+    if (length == 0) {
+        free(every_position);
+        return;
+    }
+
+    int capacity = length / 8;
+
+    for (int i = 0; i < capacity; i++){
+        int random_object = rand() % capacity;
+        Position position = every_position[random_object];
+        maze->grille[position.row][position.column] = CELL_WAY;
+        every_position[random_object] = every_position[length-1];
+        length--;
+    }
+
+    free(every_position);
+}
+
+
 
 
 Maze *creationMaze(int height, int width){
@@ -232,6 +286,15 @@ Maze *creationMaze(int height, int width){
         // pour faire la suppression 
         possibilities[random_val] = possibilities[lenghtPossibilities-1];
         lenghtPossibilities--;
+    }
+
+    //On attribut la valeur du chiffre inconnu par sa cell_way (-1)
+    for (int row = 0; row < maze->height; row++) {
+        for (int column = 0; column < maze->width; column++) {
+            if (maze->grille[row][column] > CELL_WALL) {
+                maze->grille[row][column] = CELL_WAY;
+            }
+        }
     }
 
     maze->grille[0][1] = CELL_PLAYER;

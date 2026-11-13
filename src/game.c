@@ -6,6 +6,7 @@
 #include "maze.h"
 #include "display.h"
 #include "savelaby.h"
+#include "monster.h"
 
 static bool maze_shift(KEY_DIRECTION direction, Maze *maze, int *current_position,
                        bool *find_key, int *entered_cell);
@@ -17,7 +18,7 @@ static void save_score(int score, char *maze_name);
 
 void start_game(Maze *maze){
     if (maze == NULL || maze->grille == NULL || maze->height < 3 || maze->width < 3){
-        printf("Le labyrinthe est invalide.\n");
+        printf("  Le labyrinthe est invalide.\n");
         return;
     }
 
@@ -30,17 +31,18 @@ void start_game(Maze *maze){
     generate_random_object(maze);
 
     do {
+        system("clear");
         if(!find_key){
-            printf("Vous devez trouver la clé pour ouvrir la sortie du labyrinth !\n");
+            printf("  Vous devez trouver la clé pour ouvrir la sortie du labyrinth !\n");
         }
         else{
-            printf("Vous avez trouvé la clé: sortez au plus vite !\n");
+            printf("  Vous avez trouvé la clé: sortez au plus vite !\n");
         }
 
-        printf("Votre score : %d\n", score);
+        printf("  Votre score : %d\n", score);
 
         display(maze);
-        printf("entrez une direction: q, d, z, s\n\n");
+        printf("  Entrez une direction : q, d, z, s\n\n");
         if (scanf(" %c", &direction_input) != 1){
             return;
         }
@@ -54,18 +56,17 @@ void start_game(Maze *maze){
                 if (maze_shift((KEY_DIRECTION)direction_input, maze, current_position,
                                &find_key, &entered_cell)) {
                     score_game(&score, entered_cell);
+                    score -= monster_direction(maze);
                 }
                 break;
             }
             default:
                 break;
         }
-        //effacer le terminal à chaque iteration réussi
-        system("clear");
     } while (!is_end(current_position, maze));
 
-    printf("Vous avez gagné la partie !\n");
-    printf("Votre score final : %d\n", score);
+    printf("  Vous avez gagné la partie !\n");
+    printf("  Votre score final : %d\n", score);
     save_score(score, maze->name);
 }
 
@@ -102,7 +103,8 @@ static bool maze_shift(KEY_DIRECTION direction, Maze *maze, int *current_positio
     }
 
     if (destination != CELL_WAY && destination != CELL_EXIT &&
-        destination != PENALTY && destination != KEY && destination != BONUS) {
+        destination != PENALTY && destination != KEY && destination != BONUS &&
+        destination != GHOST && destination != OGRE) {
         return false;
     }
 
@@ -186,6 +188,29 @@ static void generate_random_object(Maze *maze){
         length--;
     }
 
+    if (length != 0 && maze->is_difficult == 0){
+
+        int nb_ogre = desired_per_type/4;
+        int nb_ghost = desired_per_type/4;
+
+        for (int i = 0; i < nb_ghost; i++) {
+            random_object = rand() % length;
+            position = every_position[random_object];
+            maze->grille[position.row][position.column] = GHOST;
+            every_position[random_object] = every_position[length - 1];
+            length--;
+        }
+
+        for (int i = 0; i < nb_ogre; i++) {
+            random_object = rand() % length;
+            position = every_position[random_object];
+            maze->grille[position.row][position.column] = OGRE;
+            every_position[random_object] = every_position[length - 1];
+            length--;
+        }
+    }
+    
+
     free(every_position);
 }
 
@@ -197,14 +222,18 @@ static void score_game(int *score, int entered_cell){
     else if (entered_cell == PENALTY) {
         *score -= 10;
     }
+    else if (entered_cell == GHOST || entered_cell == OGRE){
+        *score -= monster_penalty_points(entered_cell);
+    }
 }
 
 static void save_score(int score, char *maze_name){
     char player_name[20];
     if(is_better_score(maze_name, score)){
-        printf("Entrez votre nom de joueur:");
+        printf("\n  Nouveau Top 10 meilleur score !\n");
+        printf("  Entrez votre nom pour enregistrer le score : ");
         if(scanf("%19s", player_name) != 1){
-            printf("Erreur d'écriture");
+            printf("\n  Erreur de lecture du nom.\n");
             return;
         }
         save_file_score(score, maze_name, player_name);

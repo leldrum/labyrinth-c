@@ -2,34 +2,56 @@
 
 #include "display.h"
 
+static void display_cell(int cell);
+
+
+static void display_cell(int cell){
+    const char *symbol = " ";
+
+    switch (cell){
+    case CELL_WALL:
+        symbol = "#";
+        break;
+    case CELL_PLAYER:
+        symbol = "@";
+        break;
+    case CELL_EXIT:
+        symbol = "E";
+        break;
+    case KEY:
+        symbol = "K";
+        break;
+    case BONUS:
+        symbol = "+";
+        break;
+    case PENALTY:
+        symbol = "!";
+        break;
+    case OGRE:
+        symbol = "O";
+        break;
+    case GHOST:
+        symbol = "F";
+        break;
+    default:
+        break;
+    }
+
+    printf("%s ", symbol);
+}
+
+
 void display(Maze *maze){
     for (int i = 0; i < maze->height; i++){
+        printf("  ");
         for (int j = 0; j < maze->width; j++){
-            if (maze->grille[i][j] == CELL_WALL){
-                printf("%s ", "#");
-            }
-            else if (maze->grille[i][j] == CELL_PLAYER){
-                printf("%s ", "0");
-            }
-            else if (maze->grille[i][j] == CELL_EXIT){
-                printf("%s ", "-");
-            }
-            else if(maze->grille[i][j] == KEY){
-                printf("%s ", "K");
-            }
-            else if(maze->grille[i][j] == BONUS){
-                printf("%s ", "B");
-            }
-            else if(maze->grille[i][j] == PENALTY){
-                printf("%s ", "P");
-            }
-            else{
-                printf("%s ", " ");
-            }
+           display_cell(maze->grille[i][j]);
         }
         printf("\n");
     }
 }
+
+
 
 char symbole_Maze(int val){
     switch (val){

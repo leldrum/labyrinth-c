@@ -3,10 +3,7 @@
 
 #include "maze.h"
 
-typedef struct{
-    int row;
-    int column;
-}Position;
+
 
 
 

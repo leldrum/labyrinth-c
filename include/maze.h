@@ -27,13 +27,21 @@ typedef struct {
     int width;
     int **grille;
     char *name;
+    int is_difficult;
 } Maze;
 
-typedef enum{
+typedef struct{
+    int row;
+    int column;
+}Position;
+
+typedef enum {
     KEY = 5,
     BONUS = 6,
-    PENALTY = 7
-};
+    PENALTY = 7,
+    GHOST = 8,
+    OGRE = 9
+} MazeObject;
 
 
 #endif

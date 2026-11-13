@@ -5,7 +5,7 @@
 #include "launcher.h"
 
 int main(void) {
-    srand((unsigned int)time(NULL));
+    srand((int)time(NULL));
     launcher();
     return 0;
 }

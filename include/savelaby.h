@@ -6,7 +6,7 @@
 #include "maze.h"
 
 void save_maze(Maze *maze);
-char **array_maze_name(int *count);
+char **array_maze_name(int *count, int *is_difficult);
 void free_maze_names(char **names, int count);
 Maze *read_file_maze(char *name);
 bool is_better_score(char *name, int score_game);
