@@ -2,9 +2,10 @@
 
 #include "display.h"
 
-static void display_cell(int cell);
-
-
+/**
+ * @brief Defini les symbole à afficher 
+ * @param cell valeur intière issu de la grille du labyrinth
+ */
 static void display_cell(int cell){
     const char *symbol = " ";
 
@@ -42,19 +43,18 @@ static void display_cell(int cell){
 
 
 void display(Maze *maze){
-    for (int i = 0; i < maze->height; i++){
+    for (int y = 0; y < maze->height; y++){
         printf("  ");
-        for (int j = 0; j < maze->width; j++){
-           display_cell(maze->grille[i][j]);
+        for (int x = 0; x < maze->width; x++){
+           display_cell(maze->grid[x][y]);
         }
         printf("\n");
     }
 }
 
 
-
-char symbole_Maze(int val){
-    switch (val){
+char maze_symbol(int cell){
+    switch (cell){
     case CELL_WALL:
         return '#';
     case CELL_PLAYER:
@@ -66,8 +66,8 @@ char symbole_Maze(int val){
     }
 }
 
-int num_val_Maze(char sym){
-    switch (sym)
+int maze_cell_from_symbol(char symbol){
+    switch (symbol)
     {
     case '#':
         return CELL_WALL;

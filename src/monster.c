@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 
 #include "maze.h"
 #include "monster.h"
@@ -46,31 +45,52 @@ int monster_direction(Maze *maze){
 }
 
 
+/**
+ * @brief Lister tous les monstres présents sur le labyrinth
+ * @param maze pointeur du labyrinth
+ * @param monsters liste de position des monstres
+ *
+ * @return le nombre de monstre sur le labyrinth
+ */
 static int find_monsters(Maze *maze, Position *monsters){
     int count = 0;
-    for (int row = 0; row < maze->height; row++){
-        for (int column = 0; column < maze->width; column++){
-            int cell = maze->grille[row][column];
+    for (int x = 0; x < maze->width; x++){
+        for (int y = 0; y < maze->height; y++){
+            int cell = maze->grid[x][y];
             if (cell == GHOST || cell == OGRE){
-                monsters[count++] = (Position){row, column};
+                monsters[count++] = (Position){x, y};
             }
         }
     }
     return count;
 }
 
+/**
+ * @brief Renvoie la position d'une entité du labyrinth
+ * @param maze labyrinth
+ * @param object entité du labyrinth qui n'a pas de double
+ *
+ * @return la position de l'objet
+ */
 static Position find_object(Maze *maze, int object){
-    for (int row = 0; row < maze->height; row++){
-        for (int column = 0; column < maze->width; column++){
-            if (maze->grille[row][column] == object){
-                return (Position){row, column};
+    for (int x = 0; x < maze->width; x++){
+        for (int y = 0; y < maze->height; y++){
+            if (maze->grid[x][y] == object){
+                return (Position){x, y};
             }
         }
     }
     return (Position){-1, -1};
 }
+/**
+ * @brief Determiner le mouvement du monstre en fonction de son entité (ogre ou fantome) et renvoyer la penalité
+ * @param maze labyrinth
+ * @param monster type de monstre
+ *
+ * @return la pénalité attribuée au joueur
+ */
 static int move_monster(Maze *maze, Position monster){
-    int type = maze->grille[monster.row][monster.column];
+    int type = maze->grid[monster.x][monster.y];
     if (type == GHOST){
         Position player = find_object(maze, CELL_PLAYER);
         return move_ghost(maze, monster, player);
@@ -82,48 +102,64 @@ static int move_monster(Maze *maze, Position monster){
     return 0;
 }
 
+/**
+ * @brief Etablie le mouvement du fantome
+ * @param maze labyrinth
+ * @param ghost position du fantome
+ * @param player position du joueur
+ *
+ * @return la penalité attribuée au joueur
+ */
 static int move_ghost(Maze *maze, Position ghost, Position player){
-    if (player.row < 0 || player.column < 0){
+    if (player.x < 0 || player.y < 0){
         return 0;
     }
 
-    int difference_row = ghost.row - player.row;
-    int difference_column = ghost.column - player.column;
+    int difference_x = ghost.x - player.x;
+    int difference_y = ghost.y - player.y;
     int result;
 
-    if (abs(difference_column) >= abs(difference_row)){
-        int column_direction = difference_column > 0 ? -1 : 1;
-        result = move_ghost_direction(maze, ghost, 0, column_direction);
-        if (result != -1 || difference_row == 0){
+    if (abs(difference_x) >= abs(difference_y)){
+        int x_direction = difference_x > 0 ? -1 : 1;
+        result = move_ghost_direction(maze, ghost, x_direction, 0);
+        if (result != -1 || difference_y == 0){
             return result == -1 ? 0 : result;
         }
-        int row_direction = difference_row > 0 ? -1 : 1;
-        result = move_ghost_direction(maze, ghost, row_direction, 0);
+        int y_direction = difference_y > 0 ? -1 : 1;
+        result = move_ghost_direction(maze, ghost, 0, y_direction);
     }
     else{
-        int row_direction = difference_row > 0 ? -1 : 1;
-        result = move_ghost_direction(maze, ghost, row_direction, 0);
-        if (result != -1 || difference_column == 0){
+        int y_direction = difference_y > 0 ? -1 : 1;
+        result = move_ghost_direction(maze, ghost, 0, y_direction);
+        if (result != -1 || difference_x == 0){
             return result == -1 ? 0 : result;
         }
-        int column_direction = difference_column > 0 ? -1 : 1;
-        result = move_ghost_direction(maze, ghost, 0, column_direction);
+        int x_direction = difference_x > 0 ? -1 : 1;
+        result = move_ghost_direction(maze, ghost, x_direction, 0);
     }
 
     return result == -1 ? 0 : result;
 }
 
-static int move_ghost_direction(Maze *maze, Position ghost,
-                                   int row_direction, int column_direction){
-    int row = ghost.row + row_direction;
-    int column = ghost.column + column_direction;
+/**
+ * @brief Etablissement des penalités en fonction du mouvement du fantomes
+ * @param maze labyrinth
+ * @param ghost position du fantome
+ * @param x_direction direction x du joueur
+ * @param y_direction direcdtion y du joueur
+ *
+ * @return la penalité 
+ */
+static int move_ghost_direction(Maze *maze, Position ghost, int x_direction, int y_direction){
+    int x = ghost.x + x_direction;
+    int y = ghost.y + y_direction;
 
-    while (row >= 0 && row < maze->height &&
-           column >= 0 && column < maze->width){
-        int destination = maze->grille[row][column];
+    while (x >= 0 && x < maze->width &&
+           y >= 0 && y < maze->height){
+        int destination = maze->grid[x][y];
         if (destination == CELL_WALL){
-            row += row_direction;
-            column += column_direction;
+            x += x_direction;
+            y += y_direction;
             continue;
         }
         if (destination == CELL_PLAYER){
@@ -133,8 +169,8 @@ static int move_ghost_direction(Maze *maze, Position ghost,
             return -1;
         }
 
-        maze->grille[ghost.row][ghost.column] = CELL_WAY;
-        maze->grille[row][column] = GHOST;
+        maze->grid[ghost.x][ghost.y] = CELL_WAY;
+        maze->grid[x][y] = GHOST;
         return 0;
     }
 
@@ -142,7 +178,16 @@ static int move_ghost_direction(Maze *maze, Position ghost,
 }
 
 
-Position ogre_bfs(Maze *maze, Position ogre, Position key, int *path_length){
+/**
+ * @brief Retourne la position que l'ogre doit faire pour aller vers la clé parcours bfs jusqua la clé
+ * @param maze labyrinth
+ * @param ogre position de l'ogre
+ * @param key postion de la clé
+ * @param [in, out] path_length longueur de cellule vers la clé 
+ *
+ * @return la prochaine postion pour aller vers la clé 
+ */
+static Position ogre_bfs(Maze *maze, Position ogre, Position key, int *path_length){
 
     int capacity = maze->height * maze->width;
     int head = 0;
@@ -172,22 +217,22 @@ Position ogre_bfs(Maze *maze, Position ogre, Position key, int *path_length){
 
         for (int i = 0; i < 4; i++){
 
-            int next_y = current_position.column + positions[i].column;
-            int next_x = current_position.row + positions[i].row; 
+            int next_x = current_position.x + positions[i].x;
+            int next_y = current_position.y + positions[i].y;
             Position next_position = {next_x, next_y};
 
-            if(next_x < 0 || next_x >= maze->height ||
-               next_y < 0 || next_y >= maze->width){
+            if(next_x < 0 || next_x >= maze->width ||
+               next_y < 0 || next_y >= maze->height){
                 continue;
             }
 
-            if(maze->grille[next_x][next_y] == CELL_WALL){
+            if(maze->grid[next_x][next_y] == CELL_WALL){
                 continue;
             }
 
             int already_visited = 0;
             for (int j = 0; j < tail; j++){
-                if(visited[j].column == next_y && visited[j].row == next_x){
+                if(visited[j].x == next_x && visited[j].y == next_y){
                     already_visited = 1;
                     break;
                 }
@@ -199,7 +244,7 @@ Position ogre_bfs(Maze *maze, Position ogre, Position key, int *path_length){
             visited[tail] = next_position;
             parent[tail] = current_position;
             queue[tail] = next_position;
-            if(next_y == key.column && next_x == key.row){
+            if(next_x == key.x && next_y == key.y){
                 find_key = tail;
             }
             tail++;
@@ -218,12 +263,12 @@ Position ogre_bfs(Maze *maze, Position ogre, Position key, int *path_length){
 
     int index = find_key;
     *path_length = 1;
-    while(parent[index].row != ogre.row || parent[index].column != ogre.column){
+    while(parent[index].x != ogre.x || parent[index].y != ogre.y){
 
         Position previous = parent[index];
         int previous_index = -1;
         for (int i = 0; i < tail; i++){
-            if(queue[i].row == previous.row && queue[i].column == previous.column){
+            if(queue[i].x == previous.x && queue[i].y == previous.y){
                 previous_index = i;
                 break;
             }
@@ -248,9 +293,17 @@ Position ogre_bfs(Maze *maze, Position ogre, Position key, int *path_length){
     
 }
 
+/**
+ * @brief Renvoie la penalité et met a jour la postion de l'ogre vers la clé
+ * @param maze labyrinth
+ * @param ogre position de l'ogre
+ * @param key position de la clé 
+ *
+ * @return la penalité
+ */
 static int move_ogre(Maze *maze, Position ogre, Position key){
-    if (ogre.row < 0 || ogre.column < 0 ||
-        key.row < 0 || key.column < 0){
+    if (ogre.x < 0 || ogre.y < 0 ||
+        key.x < 0 || key.y < 0){
         return 0;
     }
 
@@ -260,7 +313,7 @@ static int move_ogre(Maze *maze, Position ogre, Position key){
         return 0;
     }
 
-    int destination = maze->grille[path.row][path.column];
+    int destination = maze->grid[path.x][path.y];
 
     if (destination == CELL_PLAYER){
         printf("  L'ogre vous a mis dans le mal : -15 points\n");
@@ -272,8 +325,8 @@ static int move_ogre(Maze *maze, Position ogre, Position key){
     }
 
     if (destination == BONUS || destination == CELL_WAY || destination == PENALTY || destination == GHOST){
-        maze->grille[ogre.row][ogre.column] = destination;
-        maze->grille[path.row][path.column] = OGRE;
+        maze->grid[ogre.x][ogre.y] = destination;
+        maze->grid[path.x][path.y] = OGRE;
     }
     return 0;
 }

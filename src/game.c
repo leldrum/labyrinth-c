@@ -5,7 +5,7 @@
 #include "game.h"
 #include "maze.h"
 #include "display.h"
-#include "savelaby.h"
+#include "managemaze.h"
 #include "monster.h"
 
 static bool maze_shift(KEY_DIRECTION direction, Maze *maze, int *current_position,
@@ -17,7 +17,7 @@ static void save_score(int score, char *maze_name);
 
 
 void start_game(Maze *maze){
-    if (maze == NULL || maze->grille == NULL || maze->height < 3 || maze->width < 3){
+    if (maze == NULL || maze->grid == NULL || maze->height < 3 || maze->width < 3){
         printf("  Le labyrinthe est invalide.\n");
         return;
     }
@@ -26,8 +26,8 @@ void start_game(Maze *maze){
     int current_position[2] = {1, 0};
     int score = 0;
     bool find_key = false;
-    maze->grille[0][1] = CELL_PLAYER;
-    maze->grille[maze->height-1][maze->width-2] = CELL_EXIT;
+    maze->grid[1][0] = CELL_PLAYER;
+    maze->grid[maze->width-2][maze->height-1] = CELL_EXIT;
     generate_random_object(maze);
 
     do {
@@ -52,10 +52,10 @@ void start_game(Maze *maze){
             case D:
             case Z:
             case S: {
-                int entered_cell;
+                int cell;
                 if (maze_shift((KEY_DIRECTION)direction_input, maze, current_position,
-                               &find_key, &entered_cell)) {
-                    score_game(&score, entered_cell);
+                               &find_key, &cell)) {
+                    score_game(&score, cell);
                     score -= monster_direction(maze);
                 }
                 break;
@@ -70,8 +70,17 @@ void start_game(Maze *maze){
     save_score(score, maze->name);
 }
 
-static bool maze_shift(KEY_DIRECTION direction, Maze *maze, int *current_position,
-                       bool *find_key, int *entered_cell){
+/**
+ * @brief Mouvement du joueur grâce une direction en entrée
+ * @param direction direction du joueur
+ * @param maze pointeur du labyrinth
+ * @param current_position postion actuelle du joueur
+ * @param find_key boolean permettant de savoir si le joueur à réussi a capturer la clé
+ * @param cell cellule de destination
+ *
+ * @return
+ */
+static bool maze_shift(KEY_DIRECTION direction, Maze *maze, int *current_position, bool *find_key, int *cell){
     int next_x = current_position[0];
     int next_y = current_position[1];
 
@@ -92,12 +101,12 @@ static bool maze_shift(KEY_DIRECTION direction, Maze *maze, int *current_positio
             return false;
     }
 
-    if (next_x < 0 || next_x >= maze->width ||
-        next_y < 0 || next_y >= maze->height){
+    if (next_x < 0 || next_x >= maze->width || next_y < 0 || next_y >= maze->height){
         return false;
     }
 
-    int destination = maze->grille[next_y][next_x];
+    int destination = maze->grid[next_x][next_y];
+    //si il est a la sortie mais qu'il n'a pas la clé, le mouvement n'est pas valide
     if (destination == CELL_EXIT && !*find_key) {
         return false;
     }
@@ -108,25 +117,40 @@ static bool maze_shift(KEY_DIRECTION direction, Maze *maze, int *current_positio
         return false;
     }
 
-    *entered_cell = destination;
+    *cell = destination;
     if (destination == KEY) {
         *find_key = true;
     }
 
-    maze->grille[current_position[1]][current_position[0]] = CELL_WAY;
+    //la position du joueur devient un chemain
+    maze->grid[current_position[0]][current_position[1]] = CELL_WAY;
     current_position[0] = next_x;
     current_position[1] = next_y;
-    maze->grille[next_y][next_x] = CELL_PLAYER;
+    maze->grid[next_x][next_y] = CELL_PLAYER;
     return true;
 }
 
+/**
+ * @brief Etablie si la position actuelle est à la sortie
+ * @param current_position position actuelle du joueur
+ * @param maze pointeur du labyrinth
+ *
+ * @return boolean retournant la fin du labyrinth ou non
+ */
 static bool is_end(int *current_position, Maze *maze){
     return current_position[0] == maze->width - 2 && current_position[1] == maze->height - 1;
 }
 
 
+/**
+ * @brief Liste de toutes les coordonées pour une cellule chemain
+ * @param maze pointeur du labyrinth
+ * @param length longueur de la liste des coordonnées
+ *
+ * @return la lisste des postions
+ */
 static Position *every_possibilities_object(Maze *maze, int *length) {
-    if (maze == NULL || maze->grille == NULL || length == NULL) {
+    if (maze == NULL || maze->grid == NULL || length == NULL) {
         return NULL;
     }
 
@@ -137,10 +161,10 @@ static Position *every_possibilities_object(Maze *maze, int *length) {
     }
 
     *length = 0;
-    for (int row = 1; row < maze->height - 1; row++) {
-        for (int column = 1; column < maze->width - 1; column++) {
-            if (maze->grille[row][column] == CELL_WAY) {
-                positions[(*length)++] = (Position){row, column};
+    for (int x = 1; x < maze->width - 1; x++) {
+        for (int y = 1; y < maze->height - 1; y++) {
+            if (maze->grid[x][y] == CELL_WAY) {
+                positions[(*length)++] = (Position){x, y};
             }
         }
     }
@@ -149,6 +173,10 @@ static Position *every_possibilities_object(Maze *maze, int *length) {
 }
 
 
+/**
+ * @brief Générer les bonus et malus sur le labyrinth à partir de la liste des postions des cellules chemain
+ * @param maze pointeur du labyrinth
+ */
 static void generate_random_object(Maze *maze){
 
     int length = 0;
@@ -164,18 +192,18 @@ static void generate_random_object(Maze *maze){
 
     int random_object = rand() % length;
     Position position = every_position[random_object];
-    maze->grille[position.row][position.column] = KEY;
+    maze->grid[position.x][position.y] = KEY;
     every_position[random_object] = every_position[length-1];
     length--;
 
-    int desired_per_type = maze->width/2 + maze->height/2;
-    int nb_bonus = desired_per_type;
-    int nb_penalty = desired_per_type;
+    int desired_per_type = maze->width/2 + maze->height/2; //1/4 du labyrinth est rempli de bonus et malus
+    int nb_bonus = desired_per_type/2;
+    int nb_penalty = desired_per_type/2;
 
     for (int i = 0; i < nb_bonus; i++) {
         random_object = rand() % length;
         position = every_position[random_object];
-        maze->grille[position.row][position.column] = BONUS;
+        maze->grid[position.x][position.y] = BONUS;
         every_position[random_object] = every_position[length - 1];
         length--;
     }
@@ -183,7 +211,7 @@ static void generate_random_object(Maze *maze){
     for (int i = 0; i < nb_penalty; i++) {
         random_object = rand() % length;
         position = every_position[random_object];
-        maze->grille[position.row][position.column] = PENALTY;
+        maze->grid[position.x][position.y] = PENALTY;
         every_position[random_object] = every_position[length - 1];
         length--;
     }
@@ -196,7 +224,7 @@ static void generate_random_object(Maze *maze){
         for (int i = 0; i < nb_ghost; i++) {
             random_object = rand() % length;
             position = every_position[random_object];
-            maze->grille[position.row][position.column] = GHOST;
+            maze->grid[position.x][position.y] = GHOST;
             every_position[random_object] = every_position[length - 1];
             length--;
         }
@@ -204,7 +232,7 @@ static void generate_random_object(Maze *maze){
         for (int i = 0; i < nb_ogre; i++) {
             random_object = rand() % length;
             position = every_position[random_object];
-            maze->grille[position.row][position.column] = OGRE;
+            maze->grid[position.x][position.y] = OGRE;
             every_position[random_object] = every_position[length - 1];
             length--;
         }
@@ -214,28 +242,39 @@ static void generate_random_object(Maze *maze){
     free(every_position);
 }
 
-static void score_game(int *score, int entered_cell){
+/**
+ * @brief Ajoute les bonus ou malus au joueur, a chaque deplacement, il pert 1 points
+ * @param score score du joueur
+ * @param cell cellule suivante
+ */
+static void score_game(int *score, int cell){
     (*score)--;
-    if (entered_cell == BONUS) {
+    if (cell == BONUS) {
         *score += 15;
     }
-    else if (entered_cell == PENALTY) {
+    else if (cell == PENALTY) {
         *score -= 10;
     }
-    else if (entered_cell == GHOST || entered_cell == OGRE){
-        *score -= monster_penalty_points(entered_cell);
+    else if (cell == GHOST || cell == OGRE){
+        *score -= monster_penalty_points(cell);
     }
 }
 
+/**
+ * @brief enregistre le score du joueur dans un fichier si parmi les 10 meilleurs
+ * @param score score du joueur
+ * @param maze_name nom du labyrinth
+ */
 static void save_score(int score, char *maze_name){
-    char player_name[20];
     if(is_better_score(maze_name, score)){
-        printf("\n  Nouveau Top 10 meilleur score !\n");
+        char player_name[100];
+        printf("\n  Nouveau Top 10 des meilleurs scores !\n");
         printf("  Entrez votre nom pour enregistrer le score : ");
-        if(scanf("%19s", player_name) != 1){
+        if (scanf("%99s", player_name) != 1){
             printf("\n  Erreur de lecture du nom.\n");
             return;
         }
+
         save_file_score(score, maze_name, player_name);
     }
 }

@@ -1,0 +1,12 @@
+PROJECT_NAME           = "Labyrinth C"
+OUTPUT_DIRECTORY       = docs
+INPUT                  = include src
+FILE_PATTERNS          = *.h *.c
+RECURSIVE              = YES
+OPTIMIZE_OUTPUT_FOR_C  = YES
+EXTRACT_ALL            = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+QUIET                  = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_IF_UNDOCUMENTED   = NO

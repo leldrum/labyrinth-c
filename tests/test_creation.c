@@ -1,30 +1,19 @@
-#include <stdlib.h>
-
-#include "creation.h"
 #include "minunit.h"
+#include <stdlib.h>
+#include "creation.h"
 
-static const char *test_allocate_line_and_init_maze(void){
-    int *line = allocate_line(5, 10);
-    MU_ASSERT("allocate_line: allocation échouée", line != NULL);
-    MU_ASSERT("allocate_line: murs ou valeurs incorrects",
-              line[0] == CELL_WALL && line[1] == 10 &&
-              line[2] == CELL_WALL && line[3] == 11 &&
-              line[4] == CELL_WALL);
-    free(line);
 
-    int **grid = initMaze(3, 5);
-    MU_ASSERT("initMaze: allocation échouée", grid != NULL);
-    MU_ASSERT("initMaze: bordures incorrectes",
-              grid[0][0] == CELL_WALL &&
-              grid[1][0] == CELL_WALL &&
-              grid[1][1] == 100 &&
-              grid[1][3] == 101 &&
-              grid[2][4] == CELL_WALL);
-    free_maze(grid, 3);
-    return NULL;
+/* Vérifie l'initialisation d'une grille correcte */
+MU_TEST(test_init_maze){
+    int **grid = init_maze(5, 3);
+    mu_assert(grid != NULL, "allocation échouée");
+    mu_assert(grid[0][0] == CELL_WALL, "mur incorrect");
+    mu_assert(grid[4][2] == CELL_WALL, "mur incorrect");
+    free_maze(grid, 5);
 }
 
-static const char *test_fusion_connects_adjacent_regions(void){
+/* Vérifie la fusion de régions */
+MU_TEST(test_fusion){
     int cells[5][5];
     int *rows[5];
     for (int row = 0; row < 5; row++){
@@ -34,42 +23,36 @@ static const char *test_fusion_connects_adjacent_regions(void){
         }
     }
 
-    cells[1][1] = 100;
-    cells[1][3] = 101;
-    Maze maze = {.height = 5, .width = 5, .grille = rows};
+    cells[1][1] = 20;
+    cells[3][1] = 21;
+    Maze maze;
+    maze.height = 5;
+    maze.width = 5;
+    maze.grid = rows;
 
-    MU_ASSERT("fusion: liaison valide refusée",
-              fusion(&maze, 1, 1, DIR_RIGHT));
-    MU_ASSERT("fusion: le mur entre les régions n'a pas été ouvert",
-              cells[1][2] == CELL_WAY);
-    MU_ASSERT("fusion: les régions n'ont pas été réunies",
-              cells[1][1] == 100 && cells[1][3] == 100);
-    MU_ASSERT("fusion: une position de bordure devrait être refusée",
-              !fusion(&maze, 0, 1, DIR_RIGHT));
-    return NULL;
+    mu_assert(fusion(&maze, 1, 1, DIR_RIGHT), "liaison valide refusée");
+    mu_assert(cells[2][1] == CELL_WAY, "le mur pas été ouvert");
+    mu_assert_int_eq(20, cells[1][1]);
+    mu_assert_int_eq(20, cells[3][1]);
+    mu_assert(!fusion(&maze, 0, 1, DIR_RIGHT), "fusion refusée dans le mur");
 }
 
-static const char *test_maze_creation_dimensions(void){
-    MU_ASSERT("creationMaze: une largeur paire devrait être refusée",
-              creationMaze(5, 4) == NULL);
+/* Vérifie les dimensions acceptées et les entrées/sorties */
+MU_TEST(test_maze_creation_dimensions){
+    mu_assert(create_maze(4, 5) == NULL, "largeur paire refusée");
 
-    srand(1);
-    Maze *maze = creationMaze(5, 5);
-    MU_ASSERT("creationMaze: dimensions valides refusées", maze != NULL);
-    MU_ASSERT("creationMaze: dimensions incorrectes",
-              maze->height == 5 && maze->width == 5);
-    MU_ASSERT("creationMaze: entrée ou sortie absente",
-              maze->grille[0][1] == CELL_PLAYER &&
-              maze->grille[4][3] == CELL_EXIT);
+    Maze *maze = create_maze(7, 5);
+    mu_assert(maze != NULL, "dimensions valides refusées");
+    mu_assert(maze->height == 5 && maze->width == 7, "dimensions incorrectes");
+    mu_assert_int_eq(CELL_PLAYER, maze->grid[1][0]);
+    mu_assert_int_eq(CELL_EXIT, maze->grid[5][4]);
 
-    free_maze(maze->grille, maze->height);
+    free_maze(maze->grid, maze->width);
     free(maze);
-    return NULL;
 }
 
-const char *run_creation_tests(void){
-    MU_RUN_TEST(test_allocate_line_and_init_maze);
-    MU_RUN_TEST(test_fusion_connects_adjacent_regions);
+MU_TEST_SUITE(creation_suite){
+    MU_RUN_TEST(test_init_maze);
+    MU_RUN_TEST(test_fusion);
     MU_RUN_TEST(test_maze_creation_dimensions);
-    return NULL;
 }

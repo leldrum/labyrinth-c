@@ -6,13 +6,19 @@
 #include "creation.h"
 #include "display.h"
 
+static bool is_wall_outline(Maze *maze, int y, int x);
 static Position *every_possibilities_difficult_maze(Maze *maze, int *length);
 
-#define FIRST_REGION_ID 100
 
-/* Création de la matrice */
 
-int * allocate_line(int dimension, int val){
+/**
+ * @brief Crée une ligne qui permet de faire création d'une futur grille
+ * @param dimension dimension du labyrinth
+ * @param val la valeur a l'initilisation de la ligne
+ *
+ * @return une ligne de notre futur grille
+ */
+static int *allocate_line(int dimension, int val){
     int *tab = malloc(dimension * sizeof(*tab));
 
     if(tab == NULL){
@@ -33,56 +39,49 @@ int * allocate_line(int dimension, int val){
     return tab;
 }
 
-int **initMaze(int height, int width){
+int **init_maze(int width, int height){
 
-    int **maze = (int **)malloc(height * sizeof(*maze));
-    int valNum = FIRST_REGION_ID;
+    int **maze = malloc(width * sizeof(*maze));
+    int valNum = 20;
     if(maze == NULL){
         printf("Erreur d'allocation mémoire");
         exit(1);
     }
-    for (int i = 0; i < height; i++){
-        if(i % 2 == 1){
-            maze[i] = allocate_line(width, valNum);
-            valNum += width/2;
+    for (int x = 0; x < width; x++){
+        //si ligne impaire, on lui met une valeur en quinconce
+        if(x % 2 == 1){
+            maze[x] = allocate_line(height, valNum);
+            valNum += height/2;
         }
         else{
-            maze[i] = allocate_line(width, CELL_WALL);
+            maze[x] = allocate_line(height, CELL_WALL);
         }
     }
     return maze;
 }
 
-void free_maze(int **grille, int height){
-    if (grille == NULL){
+void free_maze(int **grid, int width){
+    if (grid == NULL){
         return;
     }
-    for (int i = 0; i < height; i++){
-        free(grille[i]);
-    }
-    free(grille);
-}
-
-void testdisplay(int **maze, int height, int width){
     for (int i = 0; i < width; i++){
-        for (int j = 0; j < height; j++){
-            if(maze[i][j] == CELL_WALL){
-                printf("%s ", "#");
-            }
-            else{
-                printf("%d ", maze[i][j]);
-            }
-        }
-        printf("\n");
+        free(grid[i]);
     }
+    free(grid);
 }
 
-
-void changeValues(Maze *maze, int currentValue, int nextValue){
-    for (int i = 0; i < maze->height; i++){
-        for (int j = 0; j < maze->width; j++){
-            if(maze->grille[i][j] == nextValue ){
-                maze->grille[i][j] = currentValue;
+/**
+ * @brief Changer la valeur dans la grille du labyrinth
+ * @param maze le pointeur du labyrinth
+ * @param currentValue la valeur actuelle 
+ * @param nextValue la valeur qui va être changé
+ *
+ */
+static void change_values(Maze *maze, int currentValue, int nextValue){
+    for (int x = 0; x < maze->width; x++){
+        for (int y = 0; y < maze->height; y++){
+            if(maze->grid[x][y] == nextValue ){
+                maze->grid[x][y] = currentValue;
             }
         }
     }
@@ -91,7 +90,9 @@ void changeValues(Maze *maze, int currentValue, int nextValue){
 
 
 bool fusion(Maze *maze, int y, int x, Direction direction){
-    if (maze == NULL || maze->grille == NULL || 
+
+    //si pas les coordonnées en retourne false
+    if (maze == NULL || maze->grid == NULL ||
         is_wall_outline(maze, y, x) ||
         y % 2 == 0 || x % 2 == 0){
         return false;
@@ -121,43 +122,55 @@ bool fusion(Maze *maze, int y, int x, Direction direction){
         return false;
     }
 
-    int currentValue = maze->grille[y][x];
-    int nextValue = maze->grille[nextY][nextX];
-    if (currentValue <= CELL_WALL || nextValue <= CELL_WALL ||
-        currentValue == nextValue){
+    int currentValue = maze->grid[x][y];
+    int nextValue = maze->grid[nextX][nextY];
+    if (currentValue <= CELL_WALL || nextValue <= CELL_WALL || currentValue == nextValue){
         return false;
     }
 
     int wallY = (y + nextY) / 2;
     int wallX = (x + nextX) / 2;
     // si pas de mur entre les 2, on retourne false
-    if (maze->grille[wallY][wallX] != CELL_WALL){
+    if (maze->grid[wallX][wallY] != CELL_WALL){
         return false;
     }
 
-    maze->grille[wallY][wallX] = CELL_WAY;
-    changeValues(maze, currentValue, nextValue);
+    maze->grid[wallX][wallY] = CELL_WAY;
+    change_values(maze, currentValue, nextValue);
     return true;
 }
 
 
 
-bool is_wall_outline(Maze *maze, int y, int x){
-    if (maze == NULL || maze->grille == NULL ||
-        y < 0 || y >= maze->height || x < 0 || x >= maze->width){
+/**
+ * @brief Permet de savoir si une cellule est à l'extérieur du labyrinth
+ * @param maze pointeur du labyrinth
+ * @param y coordonnée y de la cellule
+ * @param x coordonnée x de la cellule
+ *
+ * @return Renvoie un boolean designant la sortie ou non de la cellule
+ */
+static bool is_wall_outline(Maze *maze, int y, int x){
+    if (maze == NULL || maze->grid == NULL || y < 0 || y >= maze->height || x < 0 || x >= maze->width){
         return true;
     }
 
-    return y == 0 || y == maze->height - 1 ||
-           x == 0 || x == maze->width - 1;
+    return y == 0 || y == maze->height - 1 || x == 0 || x == maze->width - 1;
 }
 
 
-MoveDirection *EveryPossibilities(Maze *maze, int *length){
+/**
+ * @brief Enonce toutes possibilités de mouvement dans chaque cellule du labyrinth 
+ * @param maze pointeur du labyrinth
+ * @param [out, in] length pointeur qui defini la longueur de toutes les possibilités trouvées 
+ *
+ * @return la listte de toutes les possibilités pour générer le labyrinth
+ */
+static MoveDirection *every_possibilities(Maze *maze, int *length){
     
     int rows = (maze->height-1) / 2;
     int columns = (maze->width-1) / 2;
-    int capacity = 2 * (rows * (columns-1) + columns * (rows-1));
+    int capacity = 2 * (rows * (columns-1) + columns * (rows-1)); //le nombre de tentative pour avoir le laby parfait 
     MoveDirection *possibilities = malloc(capacity * sizeof(*possibilities));
     if (possibilities == NULL){
         return NULL;
@@ -184,11 +197,19 @@ MoveDirection *EveryPossibilities(Maze *maze, int *length){
     return possibilities;
 }
 
+/**
+ * @brief Enonce tous les murs du labyrinth, dans le but d'en supprimer pour le niveau difficile
+ * @param maze pointeur du labyrinth
+ * @param [out, in] length pointeur qui defini la longueur de toutes les possibilités trouvées 
+ *
+ * @return la liste des positions des murs
+ */
 static Position *every_possibilities_difficult_maze(Maze *maze, int *length) {
-    if (maze == NULL || maze->grille == NULL || length == NULL) {
+    if (maze == NULL || maze->grid == NULL || length == NULL) {
         return NULL;
     }
 
+    //on prend toutes les longueurs du labyrinth pour avoir une taille assez grande
     int capacity = maze->height * maze->width;
     Position *positions = malloc(capacity * sizeof(*positions));
     if (positions == NULL) {
@@ -196,9 +217,10 @@ static Position *every_possibilities_difficult_maze(Maze *maze, int *length) {
     }
 
     *length = 0;
-    for (int row = 1; row < maze->height - 1; row++) {
-        for (int column = 1; column < maze->width - 1; column++) {
-            if (maze->grille[row][column] == CELL_WALL && ((row % 2 == 1 || column % 2 == 1 ) || (row % 2 == 0 || column % 2 == 0 ))) {
+    for (int row = 1; row < maze->width-1; row++) {
+        for (int column = 1; column < maze->height-1; column++) {
+            //cellule full impaire ou full pair
+            if (maze->grid[row][column] == CELL_WALL && ((row % 2 == 1 || column % 2 == 1 ) || (row % 2 == 0 || column % 2 == 0 ))) {
                 positions[(*length)++] = (Position){row, column};
             }
         }
@@ -220,13 +242,13 @@ void difficult_maze(Maze *maze){
         return;
     }
 
-    int capacity = length / 8;
+    int capacity = length / 8; //on prend 20% des positions
 
     for (int i = 0; i < capacity; i++){
-        int random_object = rand() % capacity;
+        int random_object = rand() % capacity; //on prend au hasard dans la liste
         Position position = every_position[random_object];
-        maze->grille[position.row][position.column] = CELL_WAY;
-        every_position[random_object] = every_position[length-1];
+        maze->grid[position.x][position.y] = CELL_WAY;
+        every_position[random_object] = every_position[length-1]; // remplace la position actuelle par la dernière et on decremente de 1
         length--;
     }
 
@@ -236,7 +258,7 @@ void difficult_maze(Maze *maze){
 
 
 
-Maze *creationMaze(int height, int width){
+Maze *create_maze(int width, int height){
 
     if(height <= 0 || width <= 0){
         printf("Les dimensions du Labyrinth doivent être positives.\n");
@@ -257,20 +279,22 @@ Maze *creationMaze(int height, int width){
     maze->height = height;
     maze->width = width;
     maze->name = NULL;
-    maze->grille = initMaze(height, width);
+    maze->grid = init_maze(width, height);
 
     int cell_fusion_number = ((height-1) / 2) * ((width-1) / 2) - 1;
     int fusion_necessary = 0;
 
     int lenghtPossibilities = 0;    
 
-    MoveDirection *possibilities = EveryPossibilities(maze, &lenghtPossibilities);
+    MoveDirection *possibilities = every_possibilities(maze, &lenghtPossibilities);
     if (possibilities == NULL){
-        free_maze(maze->grille, maze->height);
+        free_maze(maze->grid, maze->width);
         free(maze);
         return NULL;
     }
 
+    // tant que la fusion necessare ne vaut pas le nombre de fusion requis, 
+    // on fait les fusions avec la liste de toutes les coordonnées possible
     while(fusion_necessary != cell_fusion_number){
 
         int random_val = rand() % lenghtPossibilities;
@@ -289,16 +313,17 @@ Maze *creationMaze(int height, int width){
     }
 
     //On attribut la valeur du chiffre inconnu par sa cell_way (-1)
-    for (int row = 0; row < maze->height; row++) {
-        for (int column = 0; column < maze->width; column++) {
-            if (maze->grille[row][column] > CELL_WALL) {
-                maze->grille[row][column] = CELL_WAY;
+    for (int x = 0; x < maze->width; x++) {
+        for (int y = 0; y < maze->height; y++) {
+            if (maze->grid[x][y] > CELL_WALL) {
+                maze->grid[x][y] = CELL_WAY;
             }
         }
     }
 
-    maze->grille[0][1] = CELL_PLAYER;
-    maze->grille[height-1][width-2] = CELL_EXIT;
+    //On place le joueur et la sortie
+    maze->grid[1][0] = CELL_PLAYER;
+    maze->grid[width-2][height-1] = CELL_EXIT;
 
     free(possibilities);
     return maze;

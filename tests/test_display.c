@@ -1,20 +1,24 @@
-#include "display.h"
 #include "minunit.h"
+#include "display.h"
 
-static const char *test_maze_symbol_conversions(void){
-    MU_ASSERT("symbole_Maze: mur incorrect", symbole_Maze(CELL_WALL) == '#');
-    MU_ASSERT("symbole_Maze: joueur incorrect", symbole_Maze(CELL_PLAYER) == 'O');
-    MU_ASSERT("symbole_Maze: sortie incorrecte", symbole_Maze(CELL_EXIT) == '-');
-    MU_ASSERT("symbole_Maze: case libre incorrecte", symbole_Maze(CELL_WAY) == ' ');
 
-    MU_ASSERT("num_val_Maze: mur incorrect", num_val_Maze('#') == CELL_WALL);
-    MU_ASSERT("num_val_Maze: joueur incorrect", num_val_Maze('O') == CELL_PLAYER);
-    MU_ASSERT("num_val_Maze: sortie incorrecte", num_val_Maze('-') == CELL_EXIT);
-    MU_ASSERT("num_val_Maze: case libre incorrecte", num_val_Maze(' ') == CELL_WAY);
-    return NULL;
+/* Vérifie la conversion des types de cases vers les symboles */
+MU_TEST(test_maze_symbol){
+    mu_assert(maze_symbol(CELL_WALL) == '#', "symbole du mur");
+    mu_assert(maze_symbol(CELL_PLAYER) == 'O', "symbole du joueur");
+    mu_assert(maze_symbol(CELL_EXIT) == '-', "symbole de la sortie");
+    mu_assert(maze_symbol(CELL_WAY) == ' ', "symbole du chemain");
 }
 
-const char *run_display_tests(void){
-    MU_RUN_TEST(test_maze_symbol_conversions);
-    return NULL;
+/* Vérifie la conversion des symboles vers les types de cases */
+MU_TEST(test_val_maze){
+    mu_assert(maze_cell_from_symbol('#') == CELL_WALL, "symbole du mur");
+    mu_assert(maze_cell_from_symbol('O') == CELL_PLAYER, "symbole du joueur");
+    mu_assert(maze_cell_from_symbol('-') == CELL_EXIT, "symbole de la sortie");
+    mu_assert(maze_cell_from_symbol(' ') == CELL_WAY, "symbole du chemain");
+}
+
+MU_TEST_SUITE(display_suite){
+    MU_RUN_TEST(test_maze_symbol);
+    MU_RUN_TEST(test_val_maze);
 }

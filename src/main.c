@@ -4,6 +4,9 @@
 
 #include "launcher.h"
 
+/**
+ * @brief Lance le jeu du labyrinth
+ */
 int main(void) {
     srand((int)time(NULL));
     launcher();

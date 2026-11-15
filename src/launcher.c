@@ -6,7 +6,7 @@
 #include "launcher.h"
 #include "creation.h"
 #include "display.h"
-#include "savelaby.h"
+#include "managemaze.h"
 #include "game.h"
 
 typedef enum {
@@ -18,9 +18,13 @@ typedef enum {
 }Menu;
 
 static void display_score(char *name);
+static void same_maze_name(char *nom);
+static void choose_maze_name(char *nom);
 
-
-void menu(){
+/**
+ * @brief Menu qui affiche les différents modes/choix
+ */
+static void menu(void){
     printf("\n");
     printf("  +--------------------------------------------+\n");
     printf("  |                 LABYRINTHE                 |\n");
@@ -72,7 +76,7 @@ void launcher(void) {
             Maze *new_maze = generate_maze();
             if (new_maze != NULL){
                 if (maze != NULL){
-                    free_maze(maze->grille, maze->height);
+                    free_maze(maze->grid, maze->width);
                     free(maze->name);
                     free(maze);
                 }
@@ -86,14 +90,14 @@ void launcher(void) {
         case load: {
             choose_maze_name(name);
             if (name[0] != '\0'){
-                Maze *loaded_maze = read_file_maze(name);
-                if (loaded_maze != NULL){
+                Maze *load_maze = read_file_maze(name);
+                if (load_maze != NULL){
                     if (maze != NULL){
-                        free_maze(maze->grille, maze->height);
+                        free_maze(maze->grid, maze->width);
                         free(maze->name);
                         free(maze);
                     }
-                    maze = loaded_maze;
+                    maze = load_maze;
                 }
             }
             break;
@@ -112,7 +116,7 @@ void launcher(void) {
     } while (choice != exits);
 
     if (maze != NULL){
-        free_maze(maze->grille, maze->height);
+        free_maze(maze->grid, maze->width);
         free(maze->name);
         free(maze);
     }
@@ -140,20 +144,21 @@ Maze *generate_maze(void) {
         return NULL;
     }
 
+    //verfie qu'un même nom ne puisse pas être créé une nouvelle fois
     same_maze_name(name);
     if (name[0] == '\0'){
         return NULL;
     }
 
     printf("\n  Création du Maze en cours...\n\n");
-    Maze *maze = creationMaze(height, width);
+    Maze *maze = create_maze(width, height);
     if (maze == NULL){
         return NULL;
     }
 
     maze->name = malloc(strlen(name) + 1);
     if (maze->name == NULL) {
-        free_maze(maze->grille, maze->height);
+        free_maze(maze->grid, maze->width);
         free(maze);
         printf("Erreur d'allocation mémoire pour le nom du labyrinth.\n");
         return NULL;
@@ -171,6 +176,7 @@ Maze *generate_maze(void) {
 
     maze->is_difficult = difficulty;
 
+    //si difficile on modifie la génération
     if(difficulty == 0){
         difficult_maze(maze);
     }
@@ -190,14 +196,18 @@ void launch_maze(Maze *maze){
 }
     
 
-void same_maze_name(char *nom){
+/**
+ * @brief Verifie qu'un nom existant ne puisse pas être pris
+ * @param nom nom du labyrinth
+ */
+static void same_maze_name(char *nom){
     int maze_count = 0;
     char **maze_names = array_maze_name(&maze_count, NULL);
     bool name_exists;
     do {
         name_exists = false;
         printf("  Veuillez insérer le nom de votre labyrinth: ");
-        if (scanf("%49s", nom) != 1){
+        if (scanf("%s", nom) != 1){
             free_maze_names(maze_names, maze_count);
             return;
         }
@@ -214,7 +224,11 @@ void same_maze_name(char *nom){
     free_maze_names(maze_names, maze_count);
 }
 
-void choose_maze_name(char *nom){
+/**
+ * @brief Permettre le choix du labyrinth a charger avec la liste de ceux déjà existant (difficile ou non)
+ * @param nom nom du labyrinth
+ */
+static void choose_maze_name(char *nom){
     int maze_count = 0;
     int is_difficult = 1;
 
@@ -262,6 +276,10 @@ void choose_maze_name(char *nom){
     free_maze_names(maze_names, maze_count);
 }
 
+/**
+ * @brief Affiche le tableau des scores du labyrinth chargé 
+ * @param name nom du labyrinth
+ */
 static void display_score(char *name){
     if(name[0] != '\0'){
         printf("Liste de tous les scores :\n\n");

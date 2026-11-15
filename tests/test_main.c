@@ -1,26 +1,22 @@
-#include <stdio.h>
-
 #include "minunit.h"
+#include "test_creation.c"
+#include "test_display.c"
+#include "test_game.c"
+#include "test_monster.c"
+#include "test_managemaze.c"
+#include "test_launcher.c"
 
-int tests_run = 0;
-
-const char *run_creation_tests(void);
-const char *run_display_tests(void);
-const char *run_monster_tests(void);
-const char *run_savelaby_tests(void);
+MU_TEST_SUITE(statistics_suite){
+    MU_RUN_SUITE(creation_suite);
+    MU_RUN_SUITE(display_suite);
+    MU_RUN_SUITE(game_suite);
+    MU_RUN_SUITE(monster_suite);
+    MU_RUN_SUITE(managemaze_suite);
+    MU_RUN_SUITE(launcher_suite);
+}
 
 int main(void){
-    const char *failure;
-
-    failure = run_creation_tests();
-    if (failure != NULL) return 1;
-    failure = run_display_tests();
-    if (failure != NULL) return 1;
-    failure = run_monster_tests();
-    if (failure != NULL) return 1;
-    failure = run_savelaby_tests();
-    if (failure != NULL) return 1;
-
-    printf("OK: %d tests MinUnit réussis.\n", tests_run);
-    return 0;
+    MU_RUN_SUITE(statistics_suite);
+    MU_REPORT();
+    return MU_EXIT_CODE;
 }
